@@ -1,0 +1,24 @@
+{
+  "name": "Shadowing TTS - 英語シャドーイング練習",
+  "short_name": "ShadowingTTS",
+  "description": "英語のシャドーイング練習用音声読み上げアプリ",
+  "start_url": "/shadowing-tts/index.html",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#4da3ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
