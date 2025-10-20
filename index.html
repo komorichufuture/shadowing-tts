@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- セキュリティ強化: CSP設定 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
+<title>Shadowing TTS – Secure Version</title>
+<style>
+  :root{--bg:#0b0f14;--panel:#111722;--text:#e8eef6;--muted:#9fb0c7;--accent:#4da3ff;--line:#1b2433}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:var(--bg);color:var(--text)}
+  header{position:sticky;top:0;z-index:10;padding:16px 20px;background:linear-gradient(180deg,#0f1624,#0b0f14);border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:18px;letter-spacing:.3px}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px;display:grid;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label{font-size:12px;color:var(--muted)}
+  textarea,input,select{background:#0c1320;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+  textarea{width:100%}
+  input[type="number"]{width:110px}
+  button{background:#0e1a2b;color:var(--text);border:1px solid #20314a;border-radius:12px;padding:10px 14px;cursor:pointer}
+  button:hover{background:#14243a}
+  button.primary{background:var(--accent);color:#08131f;border-color:#6ab3ff;font-weight:600}
+  .pill{font-size:12px;color:var(--muted);padding:4px 8px;border:1px solid #22314a;border-radius:999px}
+  .list{display:grid;gap:8px;max-height:440px;overflow:auto;padding-right:4px}
+  .sent{display:grid;grid-template-columns:44px 1fr 110px;gap:8px;align-items:start;padding:6px;border-radius:10px}
+  .sent.active{outline:2px solid var(--accent)}
+  .en{font-weight:600}
+  .jp{color:#cfe2ff}
+  .muted{color:var(--muted)}
+  progress{width:100%;height:12px}
+  .kbd{font-size:11px;padding:2px 6px;border:1px solid #334a6e;border-radius:6px;background:#0d1523;color:#bcd0ea}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .error{color:#ff6b6b;font-size:13px;padding:8px;background:rgba(255,107,107,0.1);border-radius:8px;margin-top:8px}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+  @media (max-width:760px){.sent{grid-template-columns:34px 1fr}}
+</style>
+</head>
+<body>
+<header><h1>Shadowing TTS <span class="pill">Secure Version</span></h1></header>
+<main class="wrap">
+  <!-- 入力と設定 -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><label>英文をペースト（文ごとに自動分割）</label></div>
+      <div class="row">
+        <button id="splitBtn" class="primary">文に分割</button>
+        <button id="clearBtn">全クリア</button>
+        <button id="demoBtn">デモ文</button>
+      </div>
+    </div>
+    <!-- セキュリティ強化: 最大文字数制限 -->
+    <textarea id="text" rows="6" maxlength="50000" placeholder="Paste English text here. Paragraphs are OK. (Max 50,000 characters)"></textarea>
+
+    <div class="grid2">
+      <div>
+        <div class="row">
+          <label>1文のリピート回数</label><input id="repeatEach" type="number" min="1" max="50" value="3">
+          <label>インターバル（秒）</label><input id="gapEach" type="number" min="0" max="10" value="1" step="0.5">
+          <label>音量</label><input id="vol" type="number" min="0" max="1" step="0.1" value="0.8">
+          <label>速度</label><input id="rate" type="number" min="0.5" max="2" step="0.1" value="1">
+          <label>ピッチ</label><input id="pitch" type="number" min="0" max="2" step="0.1" value="1">
+          <label>Voice</label><select id="voice"></select>
+          <label>言語Hint</label>
+          <select id="langHint">
+            <option value="en-US" selected>en-US（英語）</option>
+            <option value="en-GB">en-GB</option>
+            <option value="en-AU">en-AU</option>
+            <option value="ja-JP">ja-JP</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <div class="row" style="justify-content:space-between">
+          <label>和訳（1行＝1文の順）。**番号付き表示**は下のリストに反映されます。</label>
+          <div class="row">
+            <button id="attachJp" class="primary">和訳を反映</button>
+            <button id="clearJp">和訳クリア</button>
+            <button id="copyJp">番号付き和訳をコピー</button>
+            <button id="printJp">印刷プレビュー</button>
+          </div>
+        </div>
+        <!-- セキュリティ強化: 最大文字数制限 -->
+        <textarea id="jpInput" rows="6" maxlength="50000" placeholder="1行につき1文の和訳を貼り付けます（英文明と同じ順序）。(Max 50,000 characters)"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 再生コントロール -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <button id="startBtn" class="primary">▶︎ 開始</button>
+        <button id="pauseBtn">⏸ 一時停止/再開</button>
+        <button id="stopBtn">⏹ 停止</button>
+        <button id="prevBtn">⏮ 前の文</button>
+        <button id="nextBtn">⏭ 次の文</button>
+      </div>
+      <div class="row">
+        <span class="muted">⌨ <span class="kbd">Space</span> 再生/一時停止 <span class="kbd">←/→</span> 前/次　<span class="kbd">T</span> 和訳表示切替</span>
+      </div>
+    </div>
+    <div class="row" style="width:100%">
+      <progress id="prog" value="0" max="1"></progress>
+    </div>
+    <div class="muted" id="status">準備完了</div>
+    <div id="errorMsg"></div>
+  </section>
+
+  <!-- 文リスト（番号付き英/日） -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <label>文リスト（クリックでその文から再生）</label>
+      <div class="row"><button id="exportBtn">JSONエクスポート</button><input id="importFile" type="file" accept="application/json"></div>
+    </div>
+    <div id="list" class="list"></div>
+  </section>
+</main>
+
+<script>
+  'use strict';
+  
+  // ===== セキュリティ強化: 完全なHTMLエスケープ関数 =====
+  function escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ===== セキュリティ強化: 安全なID生成 =====
+  function generateSafeId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // フォールバック実装
+    return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // ===== セキュリティ強化: 安全な数値パース =====
+  function safeParseNumber(value, min, max, defaultVal) {
+    const num = Number(value);
+    if (!isFinite(num) || num < min || num > max) {
+      return defaultVal;
+    }
+    return Math.round(num * 100) / 100; // 小数点以下2桁まで
+  }
+
+  // ===== セキュリティ強化: 文字列のサニタイズ =====
+  function sanitizeString(str, maxLength = 10000) {
+    if (typeof str !== 'string') return '';
+    // 制御文字を除去し、長さを制限
+    return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, maxLength);
+  }
+
+  // ===== Utilities & State =====
+  const $ = (id) => document.getElementById(id);
+  const textArea = $('text'), jpInput = $('jpInput');
+  const splitBtn = $('splitBtn'), clearBtn = $('clearBtn'), demoBtn = $('demoBtn');
+  const repeatEach = $('repeatEach'), gapEach = $('gapEach');
+  const vol = $('vol'), rate = $('rate'), pitch = $('pitch'), voiceSel = $('voice'), langHint = $('langHint');
+  const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), stopBtn = $('stopBtn'), prevBtn = $('prevBtn'), nextBtn = $('nextBtn');
+  const list = $('list'), status = $('status'), prog = $('prog'), errorMsg = $('errorMsg');
+  const exportBtn = $('exportBtn'), importFile = $('importFile');
+  const attachJpBtn = $('attachJp'), clearJpBtn = $('clearJp'), copyJpBtn = $('copyJp'), printJpBtn = $('printJp');
+
+  let sentences = [];   // [{id, text, jp?}]
+  let idx = -1;
+  let repLeft = 0;
+  let isRunning = false, paused = false, canceling = false;
+  let voices = [], chosenVoice = null;
+  let showJP = true;
+
+  // エラー表示
+  function showError(msg) {
+    errorMsg.innerHTML = `<div class="error">${escapeHtml(msg)}</div>`;
+    setTimeout(() => { errorMsg.innerHTML = ''; }, 5000);
+  }
+
+  // ===== セキュリティ強化: タイムアウト付き文章分割 =====
+  function splitTextToSentences(raw, timeoutMs = 2000) {
+    const startTime = Date.now();
+    
+    try {
+      raw = sanitizeString(raw, 50000).replace(/\r/g,'').trim();
+      if (!raw) return [];
+      
+      // 定期的にタイムアウトチェック
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error('Processing timeout');
+      }
+      
+      // 安全な正規表現パターン（複雑すぎないもの）
+      const parts = raw
+        .replace(/([.!?;])(\s+)(?=[A-Z])/g, '$1\n')
+        .split(/\n+/)
+        .map(s => s.trim())
+        .filter(Boolean)
+        .flatMap(line => {
+          // 再度タイムアウトチェック
+          if (Date.now() - startTime > timeoutMs) {
+            throw new Error('Processing timeout');
+          }
+          return line.split(/(?<=[.!?;])\s+(?=[A-Z0-9"'\(])/).map(s => s.trim());
+        })
+        .filter(Boolean)
+        .map(s => s.replace(/\s+/g,' ').replace(/\s+([.!?;:,])/g,'$1'))
+        .slice(0, 1000); // 最大1000文に制限
+      
+      return parts;
+    } catch (e) {
+      showError('文章の分割処理でエラーが発生しました: ' + e.message);
+      return [];
+    }
+  }
+
+  function renderList() {
+    list.innerHTML = '';
+    sentences.forEach((s,i) => {
+      const row = document.createElement('div'); 
+      row.className = 'sent' + (i === idx ? ' active' : '');
+      
+      const no = document.createElement('div'); 
+      no.style.textAlign = 'center'; 
+      no.textContent = String(i + 1);
+      
+      const box = document.createElement('div');
+      const en = document.createElement('div'); 
+      en.className = 'en'; 
+      en.textContent = s.text; // textContentは安全
+      box.appendChild(en);
+      
+      if (showJP && s.jp) {
+        const jp = document.createElement('div'); 
+        jp.className = 'jp'; 
+        jp.textContent = s.jp; // textContentは安全
+        box.appendChild(jp);
+      }
+      
+      const btnBox = document.createElement('div');
+      const go = document.createElement('button'); 
+      go.textContent = '▶ ここから'; 
+      go.onclick = () => jumpTo(i, true);
+      btnBox.appendChild(go);
+
+      row.appendChild(no); 
+      row.appendChild(box); 
+      row.appendChild(btnBox);
+      list.appendChild(row);
+    });
+  }
+
+  splitBtn.onclick = () => {
+    const arr = splitTextToSentences(textArea.value);
+    if (arr.length === 0 && textArea.value.trim()) {
+      showError('文章の分割に失敗しました。入力を確認してください。');
+      return;
+    }
+    sentences = arr.map(t => ({
+      id: generateSafeId(), 
+      text: sanitizeString(t, 5000), 
+      jp: ''
+    }));
+    idx = sentences.length ? 0 : -1;
+    renderList(); 
+    updateStatus('文数: ' + sentences.length); 
+    updateProgress();
+  };
+  
+  clearBtn.onclick = () => {
+    textArea.value = ''; 
+    jpInput.value = ''; 
+    sentences = []; 
+    idx = -1; 
+    isRunning = false; 
+    paused = false;
+    speechSynthesis.cancel(); 
+    renderList(); 
+    updateProgress(); 
+    updateStatus('クリアしました');
+  };
+  
+  demoBtn.onclick = () => {
+    textArea.value = `Good morning! Welcome to your daily shadowing practice.
+Please repeat each sentence clearly and confidently.
+Focus on rhythm, intonation, and linking.
+Ready? Let's begin.`;
+    jpInput.value = `おはようございます！毎日のシャドーイング練習へようこそ。
+各文をはっきり自信を持って繰り返してください。
+リズム、イントネーション、リンキングに集中しましょう。
+準備はいいですか？始めましょう。`;
+  };
+
+  // ===== JP attach/clear/copy/print =====
+  function attachJP() {
+    const lines = jpInput.value.replace(/\r/g,'').split('\n').map(s => sanitizeString(s.trim(), 5000));
+    for (let i = 0; i < sentences.length; i++) {
+      sentences[i].jp = lines[i] || '';
+    }
+    renderList(); 
+    updateStatus('和訳を反映しました');
+  }
+  
+  attachJpBtn.onclick = attachJP;
+  clearJpBtn.onclick = () => { 
+    sentences.forEach(s => s.jp = ''); 
+    renderList(); 
+    updateStatus('和訳をクリアしました'); 
+  };
+  
+  copyJpBtn.onclick = async () => {
+    const lines = sentences.map((s,i) => `${i+1}) ${s.jp || ''}`.trim());
+    const txt = lines.join('\n');
+    try { 
+      await navigator.clipboard.writeText(txt); 
+      updateStatus('番号付き和訳をコピーしました'); 
+    } catch { 
+      updateStatus('クリップボードへコピーできませんでした'); 
+    }
+  };
+  
+  // ===== セキュリティ強化: 完全なHTMLエスケープを使用 =====
+  printJpBtn.onclick = () => {
+    const w = window.open('', '_blank');
+    if (!w) {
+      showError('ポップアップがブロックされました');
+      return;
+    }
+    
+    const safeItems = sentences.map(s => escapeHtml(s.jp || ''));
+    const html = `
+      <!doctype html><html><head><meta charset="utf-8"><title>番号付き和訳</title>
+      <style>body{font-family:system-ui,Segoe UI,Roboto,Meiryo,sans-serif;padding:24px}
+      h1{font-size:18px;margin:0 0 12px} ol{line-height:1.8}</style></head>
+      <body><h1>番号付き和訳</h1><ol>
+      ${safeItems.map(text => `<li>${text}</li>`).join('\n')}
+      </ol></body></html>`;
+    w.document.write(html); 
+    w.document.close();
+  };
+
+  // ===== Voices =====
+  function loadVoices() {
+    voices = speechSynthesis.getVoices();
+    voiceSel.innerHTML = '';
+    const hint = langHint.value;
+    const sorted = voices.slice().sort((a,b) => {
+      const ah = (a.lang || '').startsWith(hint) ? -1 : 0;
+      const bh = (b.lang || '').startsWith(hint) ? -1 : 0;
+      if (ah !== bh) return ah - bh;
+      return (a.lang || '').localeCompare(b.lang || '') || (a.name || '').localeCompare(b.name || '');
+    });
+    sorted.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name; 
+      opt.textContent = `${v.name} (${v.lang})${v.default ? ' • default' : ''}`;
+      voiceSel.appendChild(opt);
+    });
+    const first = sorted.find(v => v.lang?.startsWith(hint)) || sorted[0];
+    if (first) { 
+      voiceSel.value = first.name; 
+      chosenVoice = first; 
+    }
+  }
+  
+  speechSynthesis.onvoiceschanged = loadVoices;
+  window.addEventListener('load', () => setTimeout(loadVoices, 50));
+  langHint.onchange = () => loadVoices();
+  voiceSel.onchange = () => { 
+    chosenVoice = voices.find(v => v.name === voiceSel.value) || null; 
+  };
+
+  // ===== Playback engine (Web Speech API) =====
+  function clamp(n, min, max) { 
+    n = Number(n); 
+    return Math.max(min, Math.min(max, isFinite(n) ? n : min)); 
+  }
+  
+  function currentSentence() { 
+    return sentences[idx] || null; 
+  }
+  
+  function updateStatus(msg) { 
+    status.textContent = msg; 
+  }
+  
+  function updateProgress() {
+    const total = sentences.length || 1;
+    const repTotal = clamp(repeatEach.value, 1, 50);
+    const repDone = repTotal - repLeft;
+    const fine = total ? ((idx < 0 ? 0 : idx) / total) + (repDone / repTotal) / total : 0;
+    prog.max = 1; 
+    prog.value = isRunning ? fine : (idx < 0 ? 0 : (idx + 1) / total);
+  }
+
+  function jumpTo(i, andStart = false) {
+    if (i < 0 || i >= sentences.length) return;
+    idx = i; 
+    repLeft = clamp(repeatEach.value, 1, 50);
+    renderList(); 
+    updateStatus(`文${idx+1}/${sentences.length} を準備中（x${repLeft}）`); 
+    updateProgress();
+    if (andStart) { 
+      speakLoop(); 
+    }
+  }
+
+  // ===== セキュリティ強化: 安全な値の検証付き =====
+  function makeUtterance(text) {
+    const u = new SpeechSynthesisUtterance(sanitizeString(text, 5000));
+    u.voice = chosenVoice || null;
+    u.lang = chosenVoice?.lang || langHint.value || 'en-US';
+    u.volume = safeParseNumber(vol.value, 0, 1, 0.8);
+    u.rate = safeParseNumber(rate.value, 0.5, 2, 1);
+    u.pitch = safeParseNumber(pitch.value, 0, 2, 1);
+    return u;
+  }
+
+  function speakOnce(text) {
+    return new Promise((resolve, reject) => {
+      try {
+        const u = makeUtterance(text);
+        let finished = false;
+        const timeout = setTimeout(() => {
+          if (!finished) {
+            finished = true;
+            speechSynthesis.cancel();
+            reject('Speech timeout');
+          }
+        }, 60000); // 60秒のタイムアウト
+        
+        u.onend = () => { 
+          if (!finished) { 
+            finished = true; 
+            clearTimeout(timeout);
+            resolve(); 
+          } 
+        };
+        u.onerror = (e) => { 
+          if (!finished) { 
+            finished = true; 
+            clearTimeout(timeout);
+            reject(e.error || 'error'); 
+          } 
+        };
+        speechSynthesis.speak(u);
+      } catch (e) { 
+        reject(e); 
+      }
+    });
+  }
+
+  async function speakLoop() {
+    if (idx < 0 || idx >= sentences.length) { 
+      updateStatus('文がありません'); 
+      return; 
+    }
+    isRunning = true; 
+    paused = false; 
+    canceling = false;
+    renderList();
+    
+    while (isRunning && !paused && !canceling) {
+      const s = currentSentence(); 
+      if (!s) break;
+      
+      if (repLeft <= 0) {
+        if (idx + 1 < sentences.length) { 
+          idx++; 
+          repLeft = clamp(repeatEach.value, 1, 50); 
+          renderList(); 
+          updateProgress(); 
+        } else { 
+          updateStatus('完了'); 
+          isRunning = false; 
+          break; 
+        }
+      } else {
+        updateStatus(`文${idx+1}/${sentences.length} 読み上げ中（残り ${repLeft}）`);
+        updateProgress();
+        try { 
+          await speakOnce(s.text); 
+        } catch(err) { 
+          updateStatus('TTSエラー: ' + err); 
+          showError('音声合成エラー: ' + err);
+          break; 
+        }
+        repLeft--;
+        const gapMs = safeParseNumber(gapEach.value, 0, 10, 1) * 1000;
+        if (gapMs > 0) { 
+          await new Promise(r => setTimeout(r, gapMs)); 
+        }
+      }
+    }
+  }
+
+  // Controls
+  startBtn.onclick = () => {
+    if (!sentences.length) {
+      sentences = splitTextToSentences(textArea.value).map(t => ({
+        id: generateSafeId(), 
+        text: sanitizeString(t, 5000), 
+        jp: ''
+      }));
+      idx = sentences.length ? 0 : -1; 
+      renderList();
+      if (jpInput.value.trim()) attachJP();
+    }
+    if (idx === -1) { 
+      updateStatus('文がありません'); 
+      return; 
+    }
+    repLeft = clamp(repeatEach.value, 1, 50);
+    canceling = false; 
+    paused = false; 
+    isRunning = true;
+    speechSynthesis.cancel();
+    speakLoop();
+  };
+  
+  pauseBtn.onclick = () => {
+    if (!isRunning) return;
+    if (!paused) { 
+      paused = true; 
+      speechSynthesis.pause(); 
+      updateStatus('一時停止中'); 
+    } else { 
+      paused = false; 
+      speechSynthesis.resume(); 
+      updateStatus('再開'); 
+      speakLoop(); 
+    }
+  };
+  
+  stopBtn.onclick = () => {
+    canceling = true; 
+    isRunning = false; 
+    paused = false; 
+    speechSynthesis.cancel();
+    updateStatus('停止しました'); 
+    updateProgress();
+  };
+  
+  nextBtn.onclick = () => {
+    canceling = true; 
+    speechSynthesis.cancel();
+    if (idx + 1 < sentences.length) { 
+      jumpTo(idx + 1, isRunning && !paused); 
+    } else { 
+      updateStatus('最後の文です'); 
+    }
+  };
+  
+  prevBtn.onclick = () => {
+    canceling = true; 
+    speechSynthesis.cancel();
+    if (idx - 1 >= 0) { 
+      jumpTo(idx - 1, isRunning && !paused); 
+    } else { 
+      updateStatus('最初の文です'); 
+    }
+  };
+
+  // List click
+  list.addEventListener('click', (e) => {
+    const row = e.target.closest('.sent'); 
+    if (!row) return;
+    const rows = Array.from(list.children);
+    const i = rows.indexOf(row);
+    if (i >= 0) { 
+      canceling = true; 
+      speechSynthesis.cancel(); 
+      jumpTo(i, true); 
+    }
+  });
+
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+    if (e.code === 'Space') { 
+      e.preventDefault(); 
+      pauseBtn.click(); 
+    } else if (e.key === 'ArrowRight') { 
+      e.preventDefault(); 
+      nextBtn.click(); 
+    } else if (e.key === 'ArrowLeft') { 
+      e.preventDefault(); 
+      prevBtn.click(); 
+    } else if (e.key.toLowerCase() === 't') { 
+      showJP = !showJP; 
+      renderList(); 
+    }
+  });
+
+  // ===== セキュリティ強化: 厳密なJSONデータ検証 =====
+  function validateImportedData(data) {
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('Invalid data format');
+    }
+    
+    // sentences配列の検証
+    if (!Array.isArray(data.sentences)) {
+      throw new Error('Invalid sentences format');
+    }
+    
+    const validatedSentences = data.sentences
+      .slice(0, 1000) // 最大1000文
+      .map(x => {
+        if (typeof x !== 'object' || x === null) return null;
+        return {
+          id: generateSafeId(), // 常に新しいIDを生成
+          text: sanitizeString(String(x.text || ''), 5000),
+          jp: sanitizeString(String(x.jp || ''), 5000)
+        };
+      })
+      .filter(x => x !== null && x.text); // 空文を除外
+    
+    // settings検証
+    const validatedSettings = {};
+    if (typeof data.settings === 'object' && data.settings !== null) {
+      validatedSettings.repeatEach = safeParseNumber(data.settings.repeatEach, 1, 50, 3);
+      validatedSettings.gapEach = safeParseNumber(data.settings.gapEach, 0, 10, 1);
+      validatedSettings.vol = safeParseNumber(data.settings.vol, 0, 1, 0.8);
+      validatedSettings.rate = safeParseNumber(data.settings.rate, 0.5, 2, 1);
+      validatedSettings.pitch = safeParseNumber(data.settings.pitch, 0, 2, 1);
+      validatedSettings.voice = sanitizeString(String(data.settings.voice || ''), 200);
+      validatedSettings.langHint = ['en-US', 'en-GB', 'en-AU', 'ja-JP'].includes(data.settings.langHint) 
+        ? data.settings.langHint 
+        : 'en-US';
+      validatedSettings.showJP = Boolean(data.settings.showJP);
+    }
+    
+    return { sentences: validatedSentences, settings: validatedSettings };
+  }
+
+  // Export/Import
+  exportBtn.onclick = () => {
+    const data = {
+      version: 2, 
+      sentences, 
+      settings: {
+        repeatEach: Number(repeatEach.value), 
+        gapEach: Number(gapEach.value),
+        vol: Number(vol.value), 
+        rate: Number(rate.value), 
+        pitch: Number(pitch.value),
+        voice: voiceSel.value, 
+        langHint: langHint.value, 
+        showJP
+      }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a'); 
+    a.href = URL.createObjectURL(blob); 
+    a.download = 'shadowing_tts_config.json'; 
+    a.click();
+  };
+  
+  importFile.onchange = () => {
+    const f = importFile.files?.[0]; 
+    if (!f) return;
+    
+    // ファイルサイズ制限 (5MB)
+    if (f.size > 5 * 1024 * 1024) {
+      showError('ファイルサイズが大きすぎます（最大5MB）');
+      return;
+    }
+    
+    const r = new FileReader(); 
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        const validated = validateImportedData(d);
+        
+        sentences = validated.sentences;
+        
+        // Settings適用
+        if (validated.settings) {
+          repeatEach.value = validated.settings.repeatEach;
+          gapEach.value = validated.settings.gapEach;
+          vol.value = validated.settings.vol;
+          rate.value = validated.settings.rate;
+          pitch.value = validated.settings.pitch;
+          langHint.value = validated.settings.langHint;
+          showJP = validated.settings.showJP;
+          loadVoices(); 
+          if (validated.settings.voice) {
+            voiceSel.value = validated.settings.voice;
+          }
+        }
+        
+        idx = sentences.length ? 0 : -1; 
+        renderList(); 
+        updateStatus('設定を読み込みました'); 
+        updateProgress();
+      } catch(e) { 
+        showError('JSONファイルの読み込みに失敗しました: ' + e.message);
+      }
+    }; 
+    r.onerror = () => {
+      showError('ファイルの読み込みに失敗しました');
+    };
+    r.readAsText(f);
+  };
+
+  // iOS/Safari notice
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    updateStatus('iOSはTTS初回再生にユーザー操作が必要です。サイレントスイッチに注意。');
+  }
+</script>
+</body>
+</html>
