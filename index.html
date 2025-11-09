@@ -747,6 +747,9 @@
       d.className = 'sent';
       if (i === idx) d.classList.add('active');
       
+      // data-idx属性を確実に設定
+      d.dataset.idx = String(i);
+      
       // XSS対策: textContentを使用
       const numSpan = document.createElement('span');
       numSpan.className = 'muted';
@@ -769,13 +772,13 @@
       const playBtn = document.createElement('button');
       playBtn.textContent = '▶ 再生';
       playBtn.style.fontSize = '11px';
+      playBtn.dataset.idx = String(i);  // ボタンにもインデックスを設定
       btnDiv.appendChild(playBtn);
       
       d.appendChild(numSpan);
       d.appendChild(textDiv);
       d.appendChild(btnDiv);
       
-      d.dataset.idx = i;
       list.appendChild(d);
     });
   }
@@ -1058,14 +1061,19 @@
 
   // Click list to jump
   list.addEventListener('click', (e) => {
+    // ボタンまたは行全体がクリックされた場合
     const row = e.target.closest('.sent');
     if (!row) return;
-    const rows = Array.from(list.children);
-    const i = rows.indexOf(row);
-    if (i >= 0) { 
+    
+    // data-idxから正しいインデックスを取得
+    const targetIdx = parseInt(row.dataset.idx);
+    if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < sentences.length) { 
       canceling = true; 
       speechSynthesis.cancel(); 
-      jumpTo(i, true); 
+      setTimeout(() => {
+        canceling = false;
+        jumpTo(targetIdx, true);
+      }, 100);
     }
   });
 
