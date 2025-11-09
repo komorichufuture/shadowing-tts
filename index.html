@@ -658,6 +658,7 @@
   let playing = false;
   let paused = false;
   let canceling = false;
+  window.currentSpeakTimeout = null;  // タイマー管理用
 
   // DOM
   const text = document.getElementById('text');
@@ -933,16 +934,22 @@
     let count = 0;
 
     function next() {
-      if (canceling || count >= repeats) { 
+      if (canceling || count >= repeats || !playing) { 
+        if (window.currentSpeakTimeout) {
+          clearTimeout(window.currentSpeakTimeout);
+          window.currentSpeakTimeout = null;
+        }
         totalCallback(); 
         return; 
       }
       speakSentence(s, () => {
         count++;
-        if (count < repeats && gap > 0) {
-          setTimeout(next, gap);
-        } else {
+        if (count < repeats && gap > 0 && !canceling && playing) {
+          window.currentSpeakTimeout = setTimeout(next, gap);
+        } else if (!canceling && playing) {
           next();
+        } else {
+          totalCallback();
         }
       });
     }
@@ -1002,14 +1009,22 @@
       return; 
     }
     canceling = true;
+    playing = false;
     speechSynthesis.cancel();
+    
+    // タイマーをクリア
+    if (window.currentSpeakTimeout) {
+      clearTimeout(window.currentSpeakTimeout);
+      window.currentSpeakTimeout = null;
+    }
+    
     idx = 0;
-    playing = true;
-    paused = false;
     setTimeout(() => { 
       canceling = false; 
+      playing = true;
+      paused = false;
       playFromIndex(); 
-    }, 100);
+    }, 150);
   };
 
   pauseBtn.onclick = () => {
@@ -1038,6 +1053,13 @@
     playing = false;
     paused = false;
     idx = -1;
+    
+    // タイマーをクリア
+    if (window.currentSpeakTimeout) {
+      clearTimeout(window.currentSpeakTimeout);
+      window.currentSpeakTimeout = null;
+    }
+    
     renderList();
     updateStatus('停止しました');
     updateProgress();
@@ -1045,17 +1067,41 @@
 
   prevBtn.onclick = () => {
     if (idx > 0) {
+      const wasPlaying = playing;
       canceling = true;
+      playing = false;
       speechSynthesis.cancel();
-      jumpTo(idx - 1, playing);
+      
+      // タイマーをクリア
+      if (window.currentSpeakTimeout) {
+        clearTimeout(window.currentSpeakTimeout);
+        window.currentSpeakTimeout = null;
+      }
+      
+      setTimeout(() => {
+        canceling = false;
+        jumpTo(idx - 1, wasPlaying);
+      }, 150);
     }
   };
 
   nextBtn.onclick = () => {
     if (idx < sentences.length - 1) {
+      const wasPlaying = playing;
       canceling = true;
+      playing = false;
       speechSynthesis.cancel();
-      jumpTo(idx + 1, playing);
+      
+      // タイマーをクリア
+      if (window.currentSpeakTimeout) {
+        clearTimeout(window.currentSpeakTimeout);
+        window.currentSpeakTimeout = null;
+      }
+      
+      setTimeout(() => {
+        canceling = false;
+        jumpTo(idx + 1, wasPlaying);
+      }, 150);
     }
   };
 
@@ -1067,13 +1113,29 @@
     
     // data-idxから正しいインデックスを取得
     const targetIdx = parseInt(row.dataset.idx);
-    if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < sentences.length) { 
-      canceling = true; 
-      speechSynthesis.cancel(); 
+    if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < sentences.length) {
+      // 現在再生中の音声を完全に停止
+      canceling = true;
+      playing = false;
+      paused = false;
+      speechSynthesis.cancel();
+      
+      // すべてのタイマーをクリア（グローバル変数として管理が必要な場合）
+      if (window.currentSpeakTimeout) {
+        clearTimeout(window.currentSpeakTimeout);
+        window.currentSpeakTimeout = null;
+      }
+      
+      // 少し待ってから新しい再生を開始
       setTimeout(() => {
         canceling = false;
-        jumpTo(targetIdx, true);
-      }, 100);
+        idx = targetIdx;
+        playing = true;
+        paused = false;
+        renderList();
+        updateProgress();
+        playFromIndex();
+      }, 150);  // 少し長めの遅延で確実に停止
     }
   });
 
