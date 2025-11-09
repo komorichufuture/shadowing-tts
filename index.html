@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- セキュリティ強化: CSP設定 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
-<title>Shadowing TTS – Secure Version</title>
+<title>Shadowing TTS – Enhanced Version</title>
 <style>
-  :root{--bg:#0b0f14;--panel:#111722;--text:#e8eef6;--muted:#9fb0c7;--accent:#4da3ff;--line:#1b2433}
+  :root{--bg:#0b0f14;--panel:#111722;--text:#e8eef6;--muted:#9fb0c7;--accent:#4da3ff;--success:#4dff88;--line:#1b2433}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:var(--bg);color:var(--text)}
   header{position:sticky;top:0;z-index:10;padding:16px 20px;background:linear-gradient(180deg,#0f1624,#0b0f14);border-bottom:1px solid var(--line)}
@@ -19,13 +19,18 @@
   textarea,input,select{background:#0c1320;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
   textarea{width:100%}
   input[type="number"]{width:110px}
-  button{background:#0e1a2b;color:var(--text);border:1px solid #20314a;border-radius:12px;padding:10px 14px;cursor:pointer}
+  input[type="file"]{padding:6px 10px;cursor:pointer}
+  input[type="file"]:hover{background:#14243a;border-color:#20314a}
+  button{background:#0e1a2b;color:var(--text);border:1px solid #20314a;border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s}
   button:hover{background:#14243a}
   button.primary{background:var(--accent);color:#08131f;border-color:#6ab3ff;font-weight:600}
+  button.primary:hover{background:#6ab3ff}
+  button.success{background:var(--success);color:#08131f;border-color:#6dff98;font-weight:600}
   .pill{font-size:12px;color:var(--muted);padding:4px 8px;border:1px solid #22314a;border-radius:999px}
   .list{display:grid;gap:8px;max-height:440px;overflow:auto;padding-right:4px}
-  .sent{display:grid;grid-template-columns:44px 1fr 110px;gap:8px;align-items:start;padding:6px;border-radius:10px}
-  .sent.active{outline:2px solid var(--accent)}
+  .sent{display:grid;grid-template-columns:44px 1fr 110px;gap:8px;align-items:start;padding:6px;border-radius:10px;transition:all 0.2s}
+  .sent:hover{background:rgba(77,163,255,0.05)}
+  .sent.active{outline:2px solid var(--accent);background:rgba(77,163,255,0.1)}
   .en{font-weight:600}
   .jp{color:#cfe2ff}
   .muted{color:var(--muted)}
@@ -33,21 +38,27 @@
   .kbd{font-size:11px;padding:2px 6px;border:1px solid #334a6e;border-radius:6px;background:#0d1523;color:#bcd0ea}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .error{color:#ff6b6b;font-size:13px;padding:8px;background:rgba(255,107,107,0.1);border-radius:8px;margin-top:8px}
+  .success-msg{color:var(--success);font-size:13px;padding:8px;background:rgba(77,255,136,0.1);border-radius:8px;margin-top:8px}
+  .divider{width:1px;height:20px;background:var(--line);margin:0 5px}
   @media (max-width:900px){.grid2{grid-template-columns:1fr}}
-  @media (max-width:760px){.sent{grid-template-columns:34px 1fr}}
+  @media (max-width:760px){.sent{grid-template-columns:34px 1fr}.divider{display:none}}
 </style>
 </head>
 <body>
-<header><h1>Shadowing TTS <span class="pill">Secure Version</span></h1></header>
+<header><h1>Shadowing TTS <span class="pill">Enhanced Version</span></h1></header>
 <main class="wrap">
   <!-- 入力と設定 -->
   <section class="card">
     <div class="row" style="justify-content:space-between">
-      <div class="row"><label>英文をペースト（文ごとに自動分割）</label></div>
+      <div class="row">
+        <label>英文をペースト（文ごとに自動分割）</label>
+        <div class="divider"></div>
+        <input id="topImportFile" type="file" accept="application/json" title="JSONファイルをインポート">
+      </div>
       <div class="row">
         <button id="splitBtn" class="primary">文に分割</button>
         <button id="clearBtn">全クリア</button>
-        <button id="demoBtn">デモ文</button>
+        <button id="loadDefaultBtn" class="success">早口言葉を読込</button>
       </div>
     </div>
     <!-- セキュリティ強化: 最大文字数制限 -->
@@ -107,13 +118,14 @@
     </div>
     <div class="muted" id="status">準備完了</div>
     <div id="errorMsg"></div>
+    <div id="successMsg"></div>
   </section>
 
   <!-- 文リスト（番号付き英/日） -->
   <section class="card">
     <div class="row" style="justify-content:space-between">
       <label>文リスト（クリックでその文から再生）</label>
-      <div class="row"><button id="exportBtn">JSONエクスポート</button><input id="importFile" type="file" accept="application/json"></div>
+      <div class="row"><button id="exportBtn">JSONエクスポート</button><input id="importFile" type="file" accept="application/json" style="display:none"></div>
     </div>
     <div id="list" class="list"></div>
   </section>
@@ -122,454 +134,931 @@
 <script>
   'use strict';
   
-  // ===== セキュリティ強化: 完全なHTMLエスケープ関数 =====
-  function escapeHtml(text) {
-    if (typeof text !== 'string') return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // ===== セキュリティ強化: 安全なID生成 =====
-  function generateSafeId() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
+  // デフォルトの早口言葉データ（100個完全版）
+  const DEFAULT_DATA = {
+  "version": 2,
+  "sentences": [
+    {
+      "id": "bb457a9d-a119-448c-860e-34fcf1b6f494",
+      "text": "Right or left, red or led?",
+      "jp": "右か左か、赤か鉛か？"
+    },
+    {
+      "id": "b0b10b5f-44e7-4a2e-85e2-a8f262e3533c",
+      "text": "A rolling stone gathers no moss.",
+      "jp": "転がる石には苔が生えぬ"
+    },
+    {
+      "id": "596cc58d-dcbd-4e73-9e00-7afa1448e818",
+      "text": "Really long roads lead to rural areas.",
+      "jp": "本当に長い道路が田舎地域へと続いている"
+    },
+    {
+      "id": "89701a86-7c3c-4d79-aeb8-827e33dc96df",
+      "text": "Larry collects colorful berries every fall.",
+      "jp": "ラリーは毎年秋にカラフルなベリーを集める"
+    },
+    {
+      "id": "4126d76d-78b4-45d4-8125-1e4e3be85c7d",
+      "text": "The library requires proper registration.",
+      "jp": "図書館は適切な登録を必要とする"
+    },
+    {
+      "id": "ea30bca6-bd2d-4339-af6d-efb48b072f2b",
+      "text": "Brilliant children learn rapidly.",
+      "jp": "優秀な子どもたちは素早く学ぶ"
+    },
+    {
+      "id": "40578901-4dc6-44f0-8038-16f685f91ea5",
+      "text": "Lock the clock, rock the lock.",
+      "jp": "時計に鍵をかけ、鍵を揺らせ"
+    },
+    {
+      "id": "df02f024-949e-48cc-b074-be5c98b91868",
+      "text": "Royal jelly relates to longevity.",
+      "jp": "ローヤルゼリーは長寿に関係する"
+    },
+    {
+      "id": "64dc8711-0251-4d8a-a245-acb64599cf86",
+      "text": "Little Red Riding Hood",
+      "jp": "赤ずきんちゃん"
+    },
+    {
+      "id": "ab59a6a2-75bf-474a-9c66-f3891f59046a",
+      "text": "Early to bed and early to rise makes a man healthy, wealthy, and wise.",
+      "jp": "早寝早起きは健康、富、知恵をもたらす"
+    },
+    {
+      "id": "5f57810b-1233-420c-9fbb-8bb78472a2b4",
+      "text": "Correct pronunciation requires regular practice.",
+      "jp": "正しい発音は定期的な練習を必要とする"
+    },
+    {
+      "id": "a23d1bd7-4f3b-4fe9-ade7-135dd35e783a",
+      "text": "Literally every reader loves library collections.",
+      "jp": "文字通りすべての読者が図書館のコレクションを愛する"
+    },
+    {
+      "id": "fe708a9b-ecc5-4645-8f06-206dc536a19d",
+      "text": "Rare lyrics reveal real feelings.",
+      "jp": "珍しい歌詞が本当の感情を明らかにする"
+    },
+    {
+      "id": "0d612106-51a1-4ce2-b292-7bf69e59784d",
+      "text": "Yellow lorries travel slowly around London.",
+      "jp": "黄色いトラックがロンドン周辺をゆっくり走る"
+    },
+    {
+      "id": "07b758b2-3991-414a-a24c-c09e46098733",
+      "text": "Mary, Mary, quite contrary",
+      "jp": "メアリーメアリー、とても気難しい"
+    },
+    {
+      "id": "e21a4447-4bfc-45c8-8758-1eab36311cd4",
+      "text": "I think three things through thoroughly.",
+      "jp": "私は3つのことを徹底的に考え抜く"
+    },
+    {
+      "id": "8d63582a-7f8b-4d80-989f-feb1a1bc1d51",
+      "text": "Thirty-three thieves thought Thursday was their birthday.",
+      "jp": "33人の泥棒が木曜日が誕生日だと思った"
+    },
+    {
+      "id": "c54da465-5e68-4d4d-bc60-ca2f77a5213d",
+      "text": "Nothing worth having comes without some effort.",
+      "jp": "努力なしに価値あるものは手に入らない"
+    },
+    {
+      "id": "30d0ceec-b194-4c2d-97ac-8d381ebdadef",
+      "text": "Thick thermometers measure three thousand things.",
+      "jp": "厚い温度計が3000のものを測る"
+    },
+    {
+      "id": "1b6b4906-ae26-4931-a18d-23050c82ca33",
+      "text": "Through thick and thin",
+      "jp": "良い時も悪い時も"
+    },
+    {
+      "id": "366e0372-e7e9-4543-b06a-ca58618c3265",
+      "text": "Thankful thoughts bring forth faithful paths.",
+      "jp": "感謝の思いが誠実な道をもたらす"
+    },
+    {
+      "id": "948b7d47-4554-4582-99a4-4366eb1053a8",
+      "text": "Thoughtful authors think things through.",
+      "jp": "思慮深い著者は物事を考え抜く"
+    },
+    {
+      "id": "4dfa3714-e620-47c4-87a6-3754c09e62a5",
+      "text": "This, that, these, those - the other things there.",
+      "jp": "これ、あれ、これら、あれら - あそこの他のもの"
+    },
+    {
+      "id": "292535d8-ffdc-43e9-bf48-44644c25cadf",
+      "text": "They gather together with their brothers.",
+      "jp": "彼らは兄弟たちと一緒に集まる"
+    },
+    {
+      "id": "e49dba42-aaef-44a8-83c5-cf02efc703d1",
+      "text": "The weather whether the weather is cold or whether the weather is hot.",
+      "jp": "天気が寒かろうと天気が暑かろうと"
+    },
+    {
+      "id": "77261d68-a8e3-4523-bf72-9946ccf001f4",
+      "text": "Feather by feather, birds gather together.",
+      "jp": "羽毛一本一本、鳥たちが集まる"
+    },
+    {
+      "id": "647fd8de-1876-4322-b2c9-aeed67e0f656",
+      "text": "Neither here nor there",
+      "jp": "どうでもいいこと"
+    },
+    {
+      "id": "b0ee73bb-d6c9-4877-a906-adaeb179897f",
+      "text": "Father and mother clothe their children with clothes.",
+      "jp": "父と母が子どもたちに服を着せる"
+    },
+    {
+      "id": "1ca05adf-1b12-4f19-bb8d-b79b188f8ae8",
+      "text": "Although they're healthy, they bathe daily.",
+      "jp": "彼らは健康だが、毎日入浴する"
+    },
+    {
+      "id": "1bc139f7-12c8-4e2c-9cbf-a776a765a898",
+      "text": "Rather than bother, I'd rather breathe.",
+      "jp": "わざわざ困らせるよりも、むしろ呼吸したい"
+    },
+    {
+      "id": "14a1325b-7484-4968-b5f5-b9a87050c03f",
+      "text": "Very well, we've lived five vivid lives.",
+      "jp": "とても良い、私たちは5つの鮮やかな人生を生きてきた"
+    },
+    {
+      "id": "378c3f65-b843-4cf2-9c76-f7565e1b4891",
+      "text": "Variety is the spice of life.",
+      "jp": "変化は人生のスパイス"
+    },
+    {
+      "id": "08b88959-4f82-4613-a08a-f7f619c147d6",
+      "text": "Seven villages have various vines and vegetables.",
+      "jp": "7つの村には様々なつる植物と野菜がある"
+    },
+    {
+      "id": "42baca80-f61f-4cd3-a7e1-802ad512b5fd",
+      "text": "Prevent fever with vitamin-rich vegetables.",
+      "jp": "ビタミン豊富な野菜で熱を予防する"
+    },
+    {
+      "id": "8ad8708c-e56d-472e-978c-52eb94939844",
+      "text": "Very berry, best vest, base vase.",
+      "jp": "とてもベリー、最高のベスト、土台の花瓶"
+    },
+    {
+      "id": "130448b8-fee6-495a-8585-30a5591a2fb7",
+      "text": "Brave voters favor veterans.",
+      "jp": "勇敢な投票者は退役軍人を支持する"
+    },
+    {
+      "id": "04a33feb-1e6e-43b4-8e11-842f2d494a61",
+      "text": "The van and the ban, the vote and the boat.",
+      "jp": "バンと禁止、投票とボート"
+    },
+    {
+      "id": "579d97ce-9f04-4098-8bbb-1e6e965ec74c",
+      "text": "Four fine fresh fish for you.",
+      "jp": "あなたのために4匹の上質で新鮮な魚"
+    },
+    {
+      "id": "b619cf46-500c-44f3-8493-564745f2beae",
+      "text": "Coffee before coffee feels comfortable.",
+      "jp": "コーヒーの前のコーヒーは心地よい"
+    },
+    {
+      "id": "d5d0880c-09eb-4398-b9dc-f969e936ae52",
+      "text": "Five fat frogs flew past fast.",
+      "jp": "5匹の太ったカエルが素早く飛んで通り過ぎた"
+    },
+    {
+      "id": "c99ddb13-df95-482a-a489-d370a47ec921",
+      "text": "Fifty-five famous performers prefer professional photography.",
+      "jp": "55人の有名なパフォーマーがプロの写真撮影を好む"
+    },
+    {
+      "id": "7913555c-c065-4186-b7d9-6a085c92eb24",
+      "text": "Failure is the mother of success.",
+      "jp": "失敗は成功の母"
+    },
+    {
+      "id": "b5dee901-8505-4a21-9d9a-56b353f44b2b",
+      "text": "Why wait when we want what we wish?",
+      "jp": "望むものを欲しい時になぜ待つのか？"
+    },
+    {
+      "id": "10f196d2-2b21-4192-b1a9-d7d150c30c0c",
+      "text": "Wise women and wealthy widows wear white.",
+      "jp": "賢い女性と裕福な未亡人は白を着る"
+    },
+    {
+      "id": "13ed279b-870d-4519-882b-a1635d6c0534",
+      "text": "Wee Willie Winkie runs through the town",
+      "jp": "ちっちゃなウィリー・ウィンキーが町を走り抜ける"
+    },
+    {
+      "id": "f6dde9e7-d0fe-4d42-abb7-bcb36054de7e",
+      "text": "Where there's a will, there's a way.",
+      "jp": "意志あるところに道は開ける"
+    },
+    {
+      "id": "ec20443f-4229-4185-bf02-45b80b0cf117",
+      "text": "Twenty white swans swam away westward.",
+      "jp": "20羽の白鳥が西へ泳ぎ去った"
+    },
+    {
+      "id": "3bbe42f5-348b-46b8-bc91-a736aaca973c",
+      "text": "We wonder what wonderful weather we'll witness.",
+      "jp": "私たちはどんな素晴らしい天気を目撃するのか不思議に思う"
+    },
+    {
+      "id": "6dafc542-567b-4cfc-a293-ca23c1993020",
+      "text": "Warm winds whistle while waves wash the waterfront.",
+      "jp": "暖かい風が口笛を吹く一方、波が海岸を洗う"
+    },
+    {
+      "id": "6de5fc04-3e11-490e-b079-807990b074d2",
+      "text": "Once upon a time, wisdom won over wickedness.",
+      "jp": "昔々、知恵が邪悪に勝利した"
+    },
+    {
+      "id": "d69c2340-7b64-40b9-8cb2-e0600bc7866a",
+      "text": "This ship will reach the beach.",
+      "jp": "この船は海岸に到着するだろう"
+    },
+    {
+      "id": "0447894d-97f9-467e-9304-cb99e2919be0",
+      "text": "Six sick sheep sleep sweetly.",
+      "jp": "6匹の病気の羊が気持ちよく眠る"
+    },
+    {
+      "id": "07275c41-ef7b-4da4-8fb4-bf4b3927f10d",
+      "text": "Fill the field with wheat and beans.",
+      "jp": "小麦と豆で畑を満たす"
+    },
+    {
+      "id": "3aa5acf9-17e0-40a6-a246-4d442cb622bc",
+      "text": "Sit in the seat and eat the meat.",
+      "jp": "座席に座って肉を食べる"
+    },
+    {
+      "id": "b29274fd-2b4c-4e93-9acc-f3d4d28a1041",
+      "text": "The fat cat sat on a hat, but the hut was shut.",
+      "jp": "太った猫が帽子の上に座ったが、小屋は閉まっていた"
+    },
+    {
+      "id": "63268721-1059-46ec-977a-642b27285989",
+      "text": "Apple in hand, I ran past the cart.",
+      "jp": "リンゴを手に、私はカートを通り過ぎて走った"
+    },
+    {
+      "id": "fc3c5876-6268-45d8-a11a-cd71db69bc71",
+      "text": "Black cats stand at the back of the farm.",
+      "jp": "黒猫が農場の奥に立っている"
+    },
+    {
+      "id": "c06bb038-0c01-4605-b95f-e4ebff03258e",
+      "text": "My uncle from London loves butter and jam.",
+      "jp": "ロンドンからの叔父はバターとジャムが大好きだ"
+    },
+    {
+      "id": "b83cf1bf-3371-455e-9afd-a5539c69bacd",
+      "text": "Look!A good cook took cool books.",
+      "jp": "見て！良い料理人が素敵な本を取った"
+    },
+    {
+      "id": "7fd89331-23ba-44b5-bb97-08824e1ee923",
+      "text": "The poor tourist put his foot in the pool.",
+      "jp": "貧しい観光客はプールに足を入れた"
+    },
+    {
+      "id": "aee56c67-e550-4e06-a9a0-432e06224ee1",
+      "text": "Would you choose smooth shoes or wooden boots?",
+      "jp": "滑らかな靴と木製のブーツ、どちらを選びますか？"
+    },
+    {
+      "id": "96949f92-f8c2-4f6f-bcf0-c11aa2f9340f",
+      "text": "Ten men made a plan to escape the rain.",
+      "jp": "10人の男性が雨を逃れる計画を立てた"
+    },
+    {
+      "id": "e99bed6f-5a62-4a93-9649-9bbe59a797b0",
+      "text": "Let me tell a tale about a red gate.",
+      "jp": "赤い門についての話をさせてください"
+    },
+    {
+      "id": "8b42e3bc-b79e-463d-bc49-00a453eae91d",
+      "text": "Better late than never.",
+      "jp": "遅れても来ないよりはまし"
+    },
+    {
+      "id": "2d8e1a56-1016-4973-a27e-40280ef11ec4",
+      "text": "Men met at seven, then left at eight.",
+      "jp": "男たちは7時に会い、8時に去った"
+    },
+    {
+      "id": "78b7eaa1-aaa4-452d-8689-989b31eac366",
+      "text": "Five white mice tried to ride bicycles.",
+      "jp": "5匹の白いネズミが自転車に乗ろうとした"
+    },
+    {
+      "id": "c25ca580-bf9a-40e9-9735-e4d44fee6824",
+      "text": "Time flies like an arrow.",
+      "jp": "光陰矢の如し"
+    },
+    {
+      "id": "6586f61e-39b6-4fd0-be0a-86e8ac2ad5a4",
+      "text": "My child's bright smile lights the night sky.",
+      "jp": "私の子どもの明るい笑顔が夜空を照らす"
+    },
+    {
+      "id": "49619fca-6577-4225-a103-93b9a8634d8a",
+      "text": "How now brown cow?",
+      "jp": "さあ茶色い牛よ？"
+    },
+    {
+      "id": "c8d85b7e-a332-49a9-930d-85742972887e",
+      "text": "Clouds surround mountains around our town.",
+      "jp": "雲が私たちの町の周りの山々を囲む"
+    },
+    {
+      "id": "8c048b8e-57b0-4e93-9905-34cc8590b478",
+      "text": "The mouse found a loud sound in the house.",
+      "jp": "ネズミが家の中で大きな音を見つけた"
+    },
+    {
+      "id": "c1408044-1b12-461a-9894-f56ac5eaa21a",
+      "text": "Boys enjoy toys and make noise.",
+      "jp": "男の子はおもちゃを楽しみ、騒音を立てる"
+    },
+    {
+      "id": "a7303037-ac01-45e7-b47b-17f066ebc26b",
+      "text": "Join the loyal employees at the royal appointment.",
+      "jp": "王室の約束で忠実な従業員に加わる"
+    },
+    {
+      "id": "fc6956ed-d8ea-4b89-8fa7-6427bfd9de12",
+      "text": "Careful!There's a bear on the stairs.",
+      "jp": "注意！階段に熊がいる"
+    },
+    {
+      "id": "c19d5e3d-e443-4555-b2d4-b08750f2992b",
+      "text": "Dear deer fear near here every year.",
+      "jp": "親愛なる鹿は毎年ここ近くで恐れる"
+    },
+    {
+      "id": "3c16c16f-236a-4e6a-a11b-2b4710724143",
+      "text": "We're here to hear the engineer's idea clearly.",
+      "jp": "私たちは技術者のアイデアを明確に聞くためにここにいる"
+    },
+    {
+      "id": "bba80227-a965-47ab-9e3c-5a5af6a4e915",
+      "text": "Strange streets stretch straight through spring.",
+      "jp": "奇妙な通りが春を貫いてまっすぐ伸びる"
+    },
+    {
+      "id": "bb0efe0a-e1c6-4f1b-92c9-c1f62d5667d8",
+      "text": "Strike while the iron is hot.",
+      "jp": "鉄は熱いうちに打て"
+    },
+    {
+      "id": "33f278b6-dce6-4364-939f-5cb24061afe1",
+      "text": "Three strong sprinters sprint through thick frost.",
+      "jp": "3人の強いスプリンターが厚い霜を駆け抜ける"
+    },
+    {
+      "id": "8bb9c72c-1545-4baa-a784-2b58d75dcd1c",
+      "text": "Spread fresh strawberry preserves on crispy bread.",
+      "jp": "サクサクのパンに新鮮なイチゴジャムを塗る"
+    },
+    {
+      "id": "862b01b7-aa3e-46be-9d98-c452d69266b0",
+      "text": "Spring brings splendid blossoms and crystal streams.",
+      "jp": "春は素晴らしい花と澄んだ小川をもたらす"
+    },
+    {
+      "id": "73107dc5-00e5-4047-957c-03100013d873",
+      "text": "She asks twelve questions perfectly.",
+      "jp": "彼女は12の質問を完璧に尋ねる"
+    },
+    {
+      "id": "fa5f2a88-0364-4964-a603-2e2ca50b9002",
+      "text": "Glimpse the text next to the sixth desk.",
+      "jp": "6番目の机の隣のテキストをちらりと見る"
+    },
+    {
+      "id": "9daee752-ec24-472c-b4f2-981b0c725510",
+      "text": "Prompts, scripts, attempts, and concepts challenge students.",
+      "jp": "プロンプト、スクリプト、試み、そして概念が学生に挑戦を与える"
+    },
+    {
+      "id": "b543b4c3-bb2a-4d3f-8bdd-b4c7392611e3",
+      "text": "Acts, facts, pacts - contracts intact.",
+      "jp": "行為、事実、協定 - 契約は無傷"
+    },
+    {
+      "id": "34bd524b-333b-4708-b0cf-afa74a819815",
+      "text": "The world's warmth calms anxious minds.",
+      "jp": "世界の温かさが不安な心を落ち着かせる"
+    },
+    {
+      "id": "a19aeb85-68bc-4d01-a313-1ad19ca4b76a",
+      "text": "Sixths, twelfths, hundredths, thousandths.",
+      "jp": "6分の1、12分の1、100分の1、1000分の1"
+    },
+    {
+      "id": "8ffcac09-b2a5-47a2-8193-39d894298898",
+      "text": "He sculpts plastics and constructs products.",
+      "jp": "彼はプラスチックを彫刻し、製品を構築する"
+    },
+    {
+      "id": "2c4bce23-3cc0-49ab-a458-82f82ef9db99",
+      "text": "Bad dad, sad lad - mad pad, glad Brad.",
+      "jp": "悪い父、悲しい少年 - 怒ったパッド、嬉しいブラッド"
+    },
+    {
+      "id": "bd431c58-8b26-40b6-b43a-b6b030c5755d",
+      "text": "The dog's log, the pig's big twig.",
+      "jp": "犬の丸太、豚の大きな小枝"
+    },
+    {
+      "id": "daeb3eb2-73b5-4ba3-a4e5-42cdea4cbd51",
+      "text": "Seed and seat, feed and feet, lead and leap.",
+      "jp": "種と座席、餌と足、導きと跳躍"
+    },
+    {
+      "id": "11abcf5e-b35b-4dfc-a689-969518353f4b",
+      "text": "Pick, pick, quick trick - thick brick, sick chick.",
+      "jp": "選べ、選べ、素早い手品 - 厚いレンガ、病気のヒヨコ"
+    },
+    {
+      "id": "f7f269d4-8b8e-4a32-a85b-e35c4d5910dc",
+      "text": "Rise at sunrise, close your eyes at sunset.",
+      "jp": "日の出に起き、日没に目を閉じる"
+    },
+    {
+      "id": "06b86a78-8f72-4857-a29c-8e2e62590dbf",
+      "text": "Paths lead past vast forests and fast rivers.",
+      "jp": "小道は広大な森と速い川を通り過ぎていく"
+    },
+    {
+      "id": "70949c37-85bd-40c9-86e3-9e86410b0e98",
+      "text": "Cats and bats wear hats and catch rats.",
+      "jp": "猫とコウモリが帽子をかぶってネズミを捕まえる"
+    },
+    {
+      "id": "f74cf37f-4447-4732-94b6-fcdabfa84fd9",
+      "text": "Ripe grapes and bright shapes hang from the drapes.",
+      "jp": "熟したブドウと明るい形がカーテンから吊るされている"
+    },
+    {
+      "id": "87a1367e-75bb-41d8-be4d-629760c2d22a",
+      "text": "Peter Piper picked a peck of pickled peppers.",
+      "jp": "ピーター・パイパーが一ペックの酢漬けピーマンを摘んだ"
+    },
+    {
+      "id": "485d7fa9-e8b7-45e3-98fa-cc76955bbf53",
+      "text": "She sells seashells by the seashore.",
+      "jp": "彼女は海岸で貝殻を売る"
+    },
+    {
+      "id": "67fc72d0-b7ea-4459-aa37-eac7b12df263",
+      "text": "A proper cup of coffee in a copper coffee pot.",
+      "jp": "銅のコーヒーポットに入った適切な一杯のコーヒー"
+    },
+    {
+      "id": "badbb4ac-7085-4e04-8049-4d167071077d",
+      "text": "How much wood would a woodchuck chuck if a woodchuck could chuck wood?",
+      "jp": "ウッドチャックが木を投げられるなら、どれだけの木を投げるだろうか？"
     }
-    // フォールバック実装
-    return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+  ],
+  "settings": {
+    "repeatEach": 50,
+    "gapEach": 1,
+    "vol": 0.8,
+    "rate": 1,
+    "pitch": 1,
+    "voice": "Microsoft Andrew Online (Natural) - English (United States)",
+    "langHint": "en-US",
+    "showJP": true
+  }
+};
+
+  // Variables
+  let sentences = [];
+  let showJP = true;
+  let idx = -1;
+  let playing = false;
+  let paused = false;
+  let canceling = false;
+
+  // DOM
+  const text = document.getElementById('text');
+  const jpInput = document.getElementById('jpInput');
+  const list = document.getElementById('list');
+  const splitBtn = document.getElementById('splitBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const loadDefaultBtn = document.getElementById('loadDefaultBtn');
+  const attachJp = document.getElementById('attachJp');
+  const clearJp = document.getElementById('clearJp');
+  const copyJp = document.getElementById('copyJp');
+  const printJp = document.getElementById('printJp');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const prog = document.getElementById('prog');
+  const status = document.getElementById('status');
+  const exportBtn = document.getElementById('exportBtn');
+  const importFile = document.getElementById('importFile');
+  const topImportFile = document.getElementById('topImportFile');
+  const repeatEach = document.getElementById('repeatEach');
+  const gapEach = document.getElementById('gapEach');
+  const vol = document.getElementById('vol');
+  const rate = document.getElementById('rate');
+  const pitch = document.getElementById('pitch');
+  const voiceSel = document.getElementById('voice');
+  const langHint = document.getElementById('langHint');
+  const errorMsg = document.getElementById('errorMsg');
+  const successMsg = document.getElementById('successMsg');
+
+  // エラー/成功メッセージ表示関数
+  function showError(message) {
+    errorMsg.textContent = message;
+    errorMsg.style.display = 'block';
+    successMsg.style.display = 'none';
+    setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
   }
 
-  // ===== セキュリティ強化: 安全な数値パース =====
-  function safeParseNumber(value, min, max, defaultVal) {
-    const num = Number(value);
-    if (!isFinite(num) || num < min || num > max) {
-      return defaultVal;
-    }
-    return Math.round(num * 100) / 100; // 小数点以下2桁まで
+  function showSuccess(message) {
+    successMsg.textContent = message;
+    successMsg.style.display = 'block';
+    errorMsg.style.display = 'none';
+    setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
   }
 
-  // ===== セキュリティ強化: 文字列のサニタイズ =====
-  function sanitizeString(str, maxLength = 10000) {
+  // ===== セキュリティ強化: サニタイズ関数 =====
+  function sanitizeString(str, maxLength = 5000) {
     if (typeof str !== 'string') return '';
-    // 制御文字を除去し、長さを制限
+    // 制御文字を除去し、最大長を制限
     return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, maxLength);
   }
 
-  // ===== Utilities & State =====
-  const $ = (id) => document.getElementById(id);
-  const textArea = $('text'), jpInput = $('jpInput');
-  const splitBtn = $('splitBtn'), clearBtn = $('clearBtn'), demoBtn = $('demoBtn');
-  const repeatEach = $('repeatEach'), gapEach = $('gapEach');
-  const vol = $('vol'), rate = $('rate'), pitch = $('pitch'), voiceSel = $('voice'), langHint = $('langHint');
-  const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), stopBtn = $('stopBtn'), prevBtn = $('prevBtn'), nextBtn = $('nextBtn');
-  const list = $('list'), status = $('status'), prog = $('prog'), errorMsg = $('errorMsg');
-  const exportBtn = $('exportBtn'), importFile = $('importFile');
-  const attachJpBtn = $('attachJp'), clearJpBtn = $('clearJp'), copyJpBtn = $('copyJp'), printJpBtn = $('printJp');
-
-  let sentences = [];   // [{id, text, jp?}]
-  let idx = -1;
-  let repLeft = 0;
-  let isRunning = false, paused = false, canceling = false;
-  let voices = [], chosenVoice = null;
-  let showJP = true;
-
-  // エラー表示
-  function showError(msg) {
-    errorMsg.innerHTML = `<div class="error">${escapeHtml(msg)}</div>`;
-    setTimeout(() => { errorMsg.innerHTML = ''; }, 5000);
+  function safeParseNumber(value, min, max, defaultValue) {
+    const num = Number(value);
+    if (isNaN(num) || num < min || num > max) return defaultValue;
+    return num;
   }
 
-  // ===== セキュリティ強化: タイムアウト付き文章分割 =====
-  function splitTextToSentences(raw, timeoutMs = 2000) {
-    const startTime = Date.now();
-    
-    try {
-      raw = sanitizeString(raw, 50000).replace(/\r/g,'').trim();
-      if (!raw) return [];
-      
-      // 定期的にタイムアウトチェック
-      if (Date.now() - startTime > timeoutMs) {
-        throw new Error('Processing timeout');
-      }
-      
-      // 安全な正規表現パターン（複雑すぎないもの）
-      const parts = raw
-        .replace(/([.!?;])(\s+)(?=[A-Z])/g, '$1\n')
-        .split(/\n+/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .flatMap(line => {
-          // 再度タイムアウトチェック
-          if (Date.now() - startTime > timeoutMs) {
-            throw new Error('Processing timeout');
-          }
-          return line.split(/(?<=[.!?;])\s+(?=[A-Z0-9"'\(])/).map(s => s.trim());
-        })
-        .filter(Boolean)
-        .map(s => s.replace(/\s+/g,' ').replace(/\s+([.!?;:,])/g,'$1'))
-        .slice(0, 1000); // 最大1000文に制限
-      
-      return parts;
-    } catch (e) {
-      showError('文章の分割処理でエラーが発生しました: ' + e.message);
-      return [];
-    }
+  function generateSafeId() {
+    return crypto.randomUUID ? crypto.randomUUID() : 
+      Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
+  // Load default button
+  loadDefaultBtn.onclick = () => {
+    loadDataFromJSON(DEFAULT_DATA);
+    showSuccess('早口言葉データを読み込みました（R/L発音練習用）');
+  };
+
+  // Functions
+  function splitSentences(t) {
+    if (!t || typeof t !== 'string') return [];
+    // セキュリティ強化: 入力文字列をサニタイズ
+    t = sanitizeString(t, 50000);
+    return t.split(/(?<=[。.!?！？])\s+/)
+      .map(s => s.trim())
+      .filter(s => s && s.length > 0)
+      .slice(0, 1000); // 最大1000文に制限
   }
 
   function renderList() {
     list.innerHTML = '';
-    sentences.forEach((s,i) => {
-      const row = document.createElement('div'); 
-      row.className = 'sent' + (i === idx ? ' active' : '');
+    sentences.forEach((s, i) => {
+      const d = document.createElement('div');
+      d.className = 'sent';
+      if (i === idx) d.classList.add('active');
       
-      const no = document.createElement('div'); 
-      no.style.textAlign = 'center'; 
-      no.textContent = String(i + 1);
+      // XSS対策: textContentを使用
+      const numSpan = document.createElement('span');
+      numSpan.className = 'muted';
+      numSpan.textContent = `#${i + 1}`;
       
-      const box = document.createElement('div');
-      const en = document.createElement('div'); 
-      en.className = 'en'; 
-      en.textContent = s.text; // textContentは安全
-      box.appendChild(en);
+      const textDiv = document.createElement('div');
+      const enDiv = document.createElement('div');
+      enDiv.className = 'en';
+      enDiv.textContent = s.text;
+      textDiv.appendChild(enDiv);
       
       if (showJP && s.jp) {
-        const jp = document.createElement('div'); 
-        jp.className = 'jp'; 
-        jp.textContent = s.jp; // textContentは安全
-        box.appendChild(jp);
+        const jpDiv = document.createElement('div');
+        jpDiv.className = 'jp';
+        jpDiv.textContent = s.jp;
+        textDiv.appendChild(jpDiv);
       }
       
-      const btnBox = document.createElement('div');
-      const go = document.createElement('button'); 
-      go.textContent = '▶ ここから'; 
-      go.onclick = () => jumpTo(i, true);
-      btnBox.appendChild(go);
-
-      row.appendChild(no); 
-      row.appendChild(box); 
-      row.appendChild(btnBox);
-      list.appendChild(row);
+      const btnDiv = document.createElement('div');
+      const playBtn = document.createElement('button');
+      playBtn.textContent = '▶ 再生';
+      playBtn.style.fontSize = '11px';
+      btnDiv.appendChild(playBtn);
+      
+      d.appendChild(numSpan);
+      d.appendChild(textDiv);
+      d.appendChild(btnDiv);
+      
+      d.dataset.idx = i;
+      list.appendChild(d);
     });
   }
 
-  splitBtn.onclick = () => {
-    const arr = splitTextToSentences(textArea.value);
-    if (arr.length === 0 && textArea.value.trim()) {
-      showError('文章の分割に失敗しました。入力を確認してください。');
-      return;
-    }
-    sentences = arr.map(t => ({
-      id: generateSafeId(), 
-      text: sanitizeString(t, 5000), 
-      jp: ''
-    }));
-    idx = sentences.length ? 0 : -1;
-    renderList(); 
-    updateStatus('文数: ' + sentences.length); 
-    updateProgress();
-  };
-  
-  clearBtn.onclick = () => {
-    textArea.value = ''; 
-    jpInput.value = ''; 
-    sentences = []; 
-    idx = -1; 
-    isRunning = false; 
-    paused = false;
-    speechSynthesis.cancel(); 
-    renderList(); 
-    updateProgress(); 
-    updateStatus('クリアしました');
-  };
-  
-  demoBtn.onclick = () => {
-    textArea.value = `Good morning! Welcome to your daily shadowing practice.
-Please repeat each sentence clearly and confidently.
-Focus on rhythm, intonation, and linking.
-Ready? Let's begin.`;
-    jpInput.value = `おはようございます！毎日のシャドーイング練習へようこそ。
-各文をはっきり自信を持って繰り返してください。
-リズム、イントネーション、リンキングに集中しましょう。
-準備はいいですか？始めましょう。`;
-  };
-
-  // ===== JP attach/clear/copy/print =====
-  function attachJP() {
-    const lines = jpInput.value.replace(/\r/g,'').split('\n').map(s => sanitizeString(s.trim(), 5000));
-    for (let i = 0; i < sentences.length; i++) {
-      sentences[i].jp = lines[i] || '';
-    }
-    renderList(); 
-    updateStatus('和訳を反映しました');
-  }
-  
-  attachJpBtn.onclick = attachJP;
-  clearJpBtn.onclick = () => { 
-    sentences.forEach(s => s.jp = ''); 
-    renderList(); 
-    updateStatus('和訳をクリアしました'); 
-  };
-  
-  copyJpBtn.onclick = async () => {
-    const lines = sentences.map((s,i) => `${i+1}) ${s.jp || ''}`.trim());
-    const txt = lines.join('\n');
-    try { 
-      await navigator.clipboard.writeText(txt); 
-      updateStatus('番号付き和訳をコピーしました'); 
-    } catch { 
-      updateStatus('クリップボードへコピーできませんでした'); 
-    }
-  };
-  
-  // ===== セキュリティ強化: 完全なHTMLエスケープを使用 =====
-  printJpBtn.onclick = () => {
-    const w = window.open('', '_blank');
-    if (!w) {
-      showError('ポップアップがブロックされました');
-      return;
-    }
-    
-    const safeItems = sentences.map(s => escapeHtml(s.jp || ''));
-    const html = `
-      <!doctype html><html><head><meta charset="utf-8"><title>番号付き和訳</title>
-      <style>body{font-family:system-ui,Segoe UI,Roboto,Meiryo,sans-serif;padding:24px}
-      h1{font-size:18px;margin:0 0 12px} ol{line-height:1.8}</style></head>
-      <body><h1>番号付き和訳</h1><ol>
-      ${safeItems.map(text => `<li>${text}</li>`).join('\n')}
-      </ol></body></html>`;
-    w.document.write(html); 
-    w.document.close();
-  };
-
-  // ===== Voices =====
-  function loadVoices() {
-    voices = speechSynthesis.getVoices();
-    voiceSel.innerHTML = '';
-    const hint = langHint.value;
-    const sorted = voices.slice().sort((a,b) => {
-      const ah = (a.lang || '').startsWith(hint) ? -1 : 0;
-      const bh = (b.lang || '').startsWith(hint) ? -1 : 0;
-      if (ah !== bh) return ah - bh;
-      return (a.lang || '').localeCompare(b.lang || '') || (a.name || '').localeCompare(b.name || '');
-    });
-    sorted.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.name; 
-      opt.textContent = `${v.name} (${v.lang})${v.default ? ' • default' : ''}`;
-      voiceSel.appendChild(opt);
-    });
-    const first = sorted.find(v => v.lang?.startsWith(hint)) || sorted[0];
-    if (first) { 
-      voiceSel.value = first.name; 
-      chosenVoice = first; 
-    }
-  }
-  
-  speechSynthesis.onvoiceschanged = loadVoices;
-  window.addEventListener('load', () => setTimeout(loadVoices, 50));
-  langHint.onchange = () => loadVoices();
-  voiceSel.onchange = () => { 
-    chosenVoice = voices.find(v => v.name === voiceSel.value) || null; 
-  };
-
-  // ===== Playback engine (Web Speech API) =====
-  function clamp(n, min, max) { 
-    n = Number(n); 
-    return Math.max(min, Math.min(max, isFinite(n) ? n : min)); 
-  }
-  
-  function currentSentence() { 
-    return sentences[idx] || null; 
-  }
-  
   function updateStatus(msg) { 
     status.textContent = msg; 
   }
-  
-  function updateProgress() {
-    const total = sentences.length || 1;
-    const repTotal = clamp(repeatEach.value, 1, 50);
-    const repDone = repTotal - repLeft;
-    const fine = total ? ((idx < 0 ? 0 : idx) / total) + (repDone / repTotal) / total : 0;
-    prog.max = 1; 
-    prog.value = isRunning ? fine : (idx < 0 ? 0 : (idx + 1) / total);
-  }
 
-  function jumpTo(i, andStart = false) {
-    if (i < 0 || i >= sentences.length) return;
-    idx = i; 
-    repLeft = clamp(repeatEach.value, 1, 50);
-    renderList(); 
-    updateStatus(`文${idx+1}/${sentences.length} を準備中（x${repLeft}）`); 
-    updateProgress();
-    if (andStart) { 
-      speakLoop(); 
+  function updateProgress() {
+    if (idx >= 0 && sentences.length) {
+      prog.value = (idx + 1) / sentences.length;
+    } else {
+      prog.value = 0;
     }
   }
 
-  // ===== セキュリティ強化: 安全な値の検証付き =====
-  function makeUtterance(text) {
-    const u = new SpeechSynthesisUtterance(sanitizeString(text, 5000));
-    u.voice = chosenVoice || null;
-    u.lang = chosenVoice?.lang || langHint.value || 'en-US';
+  function loadVoices() {
+    const voices = speechSynthesis.getVoices();
+    const hint = langHint.value;
+    voiceSel.innerHTML = '';
+    
+    // 言語でフィルタ
+    const filtered = voices.filter(v => v.lang.startsWith(hint.substring(0, 2)));
+    const sorted = filtered.length > 0 ? filtered : voices;
+    
+    sorted.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      // XSS対策: textContentを使用
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSel.appendChild(opt);
+    });
+  }
+
+  speechSynthesis.addEventListener('voiceschanged', loadVoices);
+  langHint.addEventListener('change', loadVoices);
+  loadVoices();
+
+  // Split text
+  splitBtn.onclick = () => {
+    const t = text.value;
+    if (!t) { 
+      showError('テキストを入力してください'); 
+      return; 
+    }
+    const split = splitSentences(t);
+    sentences = split.map(text => ({ 
+      id: generateSafeId(), 
+      text: sanitizeString(text), 
+      jp: '' 
+    }));
+    idx = sentences.length ? 0 : -1; 
+    renderList(); 
+    updateStatus(`${sentences.length}文に分割しました`); 
+    updateProgress();
+    showSuccess('テキストを文に分割しました');
+  };
+
+  clearBtn.onclick = () => {
+    if (!confirm('すべてクリアしますか？')) return;
+    text.value = '';
+    jpInput.value = '';
+    sentences = [];
+    idx = -1;
+    renderList();
+    updateStatus('クリアしました');
+    updateProgress();
+    showSuccess('すべてクリアしました');
+  };
+
+  // Japanese
+  attachJp.onclick = () => {
+    const lines = jpInput.value.split('\n')
+      .map(l => sanitizeString(l.trim()))
+      .filter(l => l);
+    const len = Math.min(sentences.length, lines.length, 1000); // 最大1000文
+    for (let i = 0; i < len; i++) {
+      sentences[i].jp = lines[i];
+    }
+    renderList();
+    updateStatus(`${len}件の和訳を反映しました`);
+    showSuccess('和訳を反映しました');
+  };
+
+  clearJp.onclick = () => {
+    sentences.forEach(s => { s.jp = ''; });
+    jpInput.value = '';
+    renderList();
+    updateStatus('和訳をクリアしました');
+    showSuccess('和訳をクリアしました');
+  };
+
+  copyJp.onclick = () => {
+    const lines = sentences.map((s, i) => `${i + 1}. ${s.text}\n   ${s.jp || '(和訳なし)'}`);
+    navigator.clipboard.writeText(lines.join('\n\n'))
+      .then(() => { 
+        updateStatus('番号付き和訳をコピーしました'); 
+        showSuccess('クリップボードにコピーしました');
+      })
+      .catch(e => { 
+        showError('コピーに失敗しました: ' + e.message); 
+      });
+  };
+
+  printJp.onclick = () => {
+    const lines = sentences.map((s, i) => `
+      <div style="margin-bottom:20px">
+        <div style="font-weight:bold">${i + 1}. ${s.text}</div>
+        <div style="margin-left:20px;color:#666">${s.jp || '(和訳なし)'}</div>
+      </div>
+    `);
+    const w = window.open('', '_blank');
+    w.document.write(`
+      <html>
+      <head>
+        <title>Shadowing TTS - 和訳リスト</title>
+        <style>body{font-family:sans-serif;padding:20px}</style>
+      </head>
+      <body>
+        <h1>Shadowing TTS - 和訳リスト</h1>
+        ${lines.join('')}
+      </body>
+      </html>
+    `);
+    w.document.close();
+    w.print();
+  };
+
+  // TTS
+  function speakSentence(s, callback) {
+    if (canceling) { 
+      callback(); 
+      return; 
+    }
+    const u = new SpeechSynthesisUtterance(s.text);
+    u.voice = speechSynthesis.getVoices().find(v => v.name === voiceSel.value);
     u.volume = safeParseNumber(vol.value, 0, 1, 0.8);
     u.rate = safeParseNumber(rate.value, 0.5, 2, 1);
     u.pitch = safeParseNumber(pitch.value, 0, 2, 1);
-    return u;
+    u.lang = langHint.value;
+    u.onend = callback;
+    u.onerror = (e) => {
+      showError('音声合成エラー: ' + e.error);
+      callback();
+    };
+    speechSynthesis.speak(u);
   }
 
-  function speakOnce(text) {
-    return new Promise((resolve, reject) => {
-      try {
-        const u = makeUtterance(text);
-        let finished = false;
-        const timeout = setTimeout(() => {
-          if (!finished) {
-            finished = true;
-            speechSynthesis.cancel();
-            reject('Speech timeout');
-          }
-        }, 60000); // 60秒のタイムアウト
-        
-        u.onend = () => { 
-          if (!finished) { 
-            finished = true; 
-            clearTimeout(timeout);
-            resolve(); 
-          } 
-        };
-        u.onerror = (e) => { 
-          if (!finished) { 
-            finished = true; 
-            clearTimeout(timeout);
-            reject(e.error || 'error'); 
-          } 
-        };
-        speechSynthesis.speak(u);
-      } catch (e) { 
-        reject(e); 
+  function speakWithRepeats(s, totalCallback) {
+    const repeats = safeParseNumber(repeatEach.value, 1, 50, 3);
+    const gap = safeParseNumber(gapEach.value, 0, 10, 1) * 1000;
+    let count = 0;
+
+    function next() {
+      if (canceling || count >= repeats) { 
+        totalCallback(); 
+        return; 
+      }
+      speakSentence(s, () => {
+        count++;
+        if (count < repeats && gap > 0) {
+          setTimeout(next, gap);
+        } else {
+          next();
+        }
+      });
+    }
+    next();
+  }
+
+  function jumpTo(targetIdx, autoPlay = false) {
+    if (targetIdx < 0 || targetIdx >= sentences.length) return;
+    idx = targetIdx;
+    renderList();
+    updateProgress();
+    if (autoPlay) { 
+      playing = true; 
+      paused = false; 
+      playFromIndex(); 
+    }
+  }
+
+  function playFromIndex() {
+    if (!playing || idx < 0 || idx >= sentences.length) {
+      playing = false;
+      updateStatus('再生終了');
+      return;
+    }
+
+    updateStatus(`再生中: #${idx + 1}/${sentences.length}`);
+    renderList();
+    updateProgress();
+    
+    list.children[idx]?.scrollIntoView({behavior: 'smooth', block: 'center'});
+
+    speakWithRepeats(sentences[idx], () => {
+      if (canceling) { 
+        canceling = false; 
+        playing = false; 
+        updateStatus('停止しました'); 
+        return; 
+      }
+      if (!playing) return;
+      idx++;
+      if (idx >= sentences.length) {
+        idx = -1;
+        playing = false;
+        updateStatus('再生完了');
+        renderList();
+        updateProgress();
+      } else {
+        playFromIndex();
       }
     });
   }
 
-  async function speakLoop() {
-    if (idx < 0 || idx >= sentences.length) { 
-      updateStatus('文がありません'); 
-      return; 
-    }
-    isRunning = true; 
-    paused = false; 
-    canceling = false;
-    renderList();
-    
-    while (isRunning && !paused && !canceling) {
-      const s = currentSentence(); 
-      if (!s) break;
-      
-      if (repLeft <= 0) {
-        if (idx + 1 < sentences.length) { 
-          idx++; 
-          repLeft = clamp(repeatEach.value, 1, 50); 
-          renderList(); 
-          updateProgress(); 
-        } else { 
-          updateStatus('完了'); 
-          isRunning = false; 
-          break; 
-        }
-      } else {
-        updateStatus(`文${idx+1}/${sentences.length} 読み上げ中（残り ${repLeft}）`);
-        updateProgress();
-        try { 
-          await speakOnce(s.text); 
-        } catch(err) { 
-          updateStatus('TTSエラー: ' + err); 
-          showError('音声合成エラー: ' + err);
-          break; 
-        }
-        repLeft--;
-        const gapMs = safeParseNumber(gapEach.value, 0, 10, 1) * 1000;
-        if (gapMs > 0) { 
-          await new Promise(r => setTimeout(r, gapMs)); 
-        }
-      }
-    }
-  }
-
-  // Controls
+  // Control buttons
   startBtn.onclick = () => {
-    if (!sentences.length) {
-      sentences = splitTextToSentences(textArea.value).map(t => ({
-        id: generateSafeId(), 
-        text: sanitizeString(t, 5000), 
-        jp: ''
-      }));
-      idx = sentences.length ? 0 : -1; 
-      renderList();
-      if (jpInput.value.trim()) attachJP();
-    }
-    if (idx === -1) { 
-      updateStatus('文がありません'); 
+    if (sentences.length === 0) { 
+      showError('再生する文がありません'); 
       return; 
     }
-    repLeft = clamp(repeatEach.value, 1, 50);
-    canceling = false; 
-    paused = false; 
-    isRunning = true;
+    canceling = true;
     speechSynthesis.cancel();
-    speakLoop();
+    idx = 0;
+    playing = true;
+    paused = false;
+    setTimeout(() => { 
+      canceling = false; 
+      playFromIndex(); 
+    }, 100);
   };
-  
+
   pauseBtn.onclick = () => {
-    if (!isRunning) return;
-    if (!paused) { 
-      paused = true; 
-      speechSynthesis.pause(); 
-      updateStatus('一時停止中'); 
-    } else { 
-      paused = false; 
+    if (!playing) { 
+      if (idx >= 0 && idx < sentences.length) {
+        playing = true; 
+        paused = false; 
+        playFromIndex();
+      }
+      return; 
+    }
+    if (paused) {
       speechSynthesis.resume(); 
-      updateStatus('再開'); 
-      speakLoop(); 
+      paused = false; 
+      updateStatus(`再生中: #${idx + 1}`);
+    } else {
+      speechSynthesis.pause(); 
+      paused = true; 
+      updateStatus('一時停止中');
     }
   };
-  
+
   stopBtn.onclick = () => {
-    canceling = true; 
-    isRunning = false; 
-    paused = false; 
+    canceling = true;
     speechSynthesis.cancel();
-    updateStatus('停止しました'); 
+    playing = false;
+    paused = false;
+    idx = -1;
+    renderList();
+    updateStatus('停止しました');
     updateProgress();
   };
-  
-  nextBtn.onclick = () => {
-    canceling = true; 
-    speechSynthesis.cancel();
-    if (idx + 1 < sentences.length) { 
-      jumpTo(idx + 1, isRunning && !paused); 
-    } else { 
-      updateStatus('最後の文です'); 
-    }
-  };
-  
+
   prevBtn.onclick = () => {
-    canceling = true; 
-    speechSynthesis.cancel();
-    if (idx - 1 >= 0) { 
-      jumpTo(idx - 1, isRunning && !paused); 
-    } else { 
-      updateStatus('最初の文です'); 
+    if (idx > 0) {
+      canceling = true;
+      speechSynthesis.cancel();
+      jumpTo(idx - 1, playing);
     }
   };
 
-  // List click
+  nextBtn.onclick = () => {
+    if (idx < sentences.length - 1) {
+      canceling = true;
+      speechSynthesis.cancel();
+      jumpTo(idx + 1, playing);
+    }
+  };
+
+  // Click list to jump
   list.addEventListener('click', (e) => {
-    const row = e.target.closest('.sent'); 
+    const row = e.target.closest('.sent');
     if (!row) return;
     const rows = Array.from(list.children);
     const i = rows.indexOf(row);
@@ -639,6 +1128,37 @@ Ready? Let's begin.`;
     return { sentences: validatedSentences, settings: validatedSettings };
   }
 
+  // データ読み込み関数
+  function loadDataFromJSON(data) {
+    try {
+      const validated = validateImportedData(data);
+      
+      sentences = validated.sentences;
+      
+      // Settings適用
+      if (validated.settings) {
+        repeatEach.value = validated.settings.repeatEach;
+        gapEach.value = validated.settings.gapEach;
+        vol.value = validated.settings.vol;
+        rate.value = validated.settings.rate;
+        pitch.value = validated.settings.pitch;
+        langHint.value = validated.settings.langHint;
+        showJP = validated.settings.showJP;
+        loadVoices(); 
+        if (validated.settings.voice) {
+          voiceSel.value = validated.settings.voice;
+        }
+      }
+      
+      idx = sentences.length ? 0 : -1; 
+      renderList(); 
+      updateStatus('設定を読み込みました'); 
+      updateProgress();
+    } catch(e) { 
+      showError('データの読み込みに失敗しました: ' + e.message);
+    }
+  }
+
   // Export/Import
   exportBtn.onclick = () => {
     const data = {
@@ -661,13 +1181,13 @@ Ready? Let's begin.`;
     a.download = 'shadowing_tts_config.json'; 
     a.click();
   };
-  
-  importFile.onchange = () => {
-    const f = importFile.files?.[0]; 
-    if (!f) return;
+
+  // インポート処理の共通化
+  function handleFileImport(file) {
+    if (!file) return;
     
     // ファイルサイズ制限 (5MB)
-    if (f.size > 5 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       showError('ファイルサイズが大きすぎます（最大5MB）');
       return;
     }
@@ -676,29 +1196,8 @@ Ready? Let's begin.`;
     r.onload = () => {
       try {
         const d = JSON.parse(r.result);
-        const validated = validateImportedData(d);
-        
-        sentences = validated.sentences;
-        
-        // Settings適用
-        if (validated.settings) {
-          repeatEach.value = validated.settings.repeatEach;
-          gapEach.value = validated.settings.gapEach;
-          vol.value = validated.settings.vol;
-          rate.value = validated.settings.rate;
-          pitch.value = validated.settings.pitch;
-          langHint.value = validated.settings.langHint;
-          showJP = validated.settings.showJP;
-          loadVoices(); 
-          if (validated.settings.voice) {
-            voiceSel.value = validated.settings.voice;
-          }
-        }
-        
-        idx = sentences.length ? 0 : -1; 
-        renderList(); 
-        updateStatus('設定を読み込みました'); 
-        updateProgress();
+        loadDataFromJSON(d);
+        showSuccess('JSONファイルを読み込みました');
       } catch(e) { 
         showError('JSONファイルの読み込みに失敗しました: ' + e.message);
       }
@@ -706,8 +1205,26 @@ Ready? Let's begin.`;
     r.onerror = () => {
       showError('ファイルの読み込みに失敗しました');
     };
-    r.readAsText(f);
+    r.readAsText(file);
+  }
+  
+  // 下部のインポートボタン（非表示）
+  importFile.onchange = () => {
+    handleFileImport(importFile.files?.[0]);
   };
+
+  // 上部のインポートボタン（新規追加）
+  topImportFile.onchange = () => {
+    handleFileImport(topImportFile.files?.[0]);
+  };
+
+  // ページ読み込み時にデフォルトデータを自動読み込み
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      loadDataFromJSON(DEFAULT_DATA);
+      showSuccess('早口言葉データを自動読み込みしました（R/L発音練習用）');
+    }, 500);
+  });
 
   // iOS/Safari notice
   if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
