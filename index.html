@@ -1028,22 +1028,67 @@
   };
 
   pauseBtn.onclick = () => {
-    if (!playing) { 
-      if (idx >= 0 && idx < sentences.length) {
-        playing = true; 
-        paused = false; 
-        playFromIndex();
+    // 何も再生していない場合、最初または前回の位置から開始
+    if (!playing && !paused) { 
+      if (sentences.length === 0) {
+        showError('再生する文がありません');
+        return;
       }
-      return; 
+      
+      // インデックスが無効な場合は0から開始
+      if (idx < 0 || idx >= sentences.length) {
+        idx = 0;
+      }
+      
+      playing = true; 
+      paused = false;
+      canceling = false;
+      updateStatus(`再生中: #${idx + 1}/${sentences.length}`);
+      playFromIndex();
+      return;
     }
+    
+    // 一時停止中の場合 - 再開
     if (paused) {
-      speechSynthesis.resume(); 
-      paused = false; 
-      updateStatus(`再生中: #${idx + 1}`);
-    } else {
-      speechSynthesis.pause(); 
-      paused = true; 
-      updateStatus('一時停止中');
+      // 音声合成をキャンセルして、保存されたインデックスから再開
+      speechSynthesis.cancel();
+      
+      if (window.currentSpeakTimeout) {
+        clearTimeout(window.currentSpeakTimeout);
+        window.currentSpeakTimeout = null;
+      }
+      
+      playing = true;
+      paused = false;
+      canceling = false;
+      
+      // 少し待ってから再開（音声合成のキャンセルを待つ）
+      setTimeout(() => {
+        updateStatus(`再生中: #${idx + 1}/${sentences.length}`);
+        playFromIndex();
+      }, 100);
+    } 
+    // 再生中の場合 - 一時停止
+    else if (playing) {
+      // 音声合成を停止（pauseではなくcancelを使用）
+      speechSynthesis.cancel();
+      
+      if (window.currentSpeakTimeout) {
+        clearTimeout(window.currentSpeakTimeout);
+        window.currentSpeakTimeout = null;
+      }
+      
+      playing = false;  // 一時停止時はplayingをfalseに
+      paused = true;
+      canceling = true;  // cancelフラグを設定
+      
+      // idxは保持（次回再開時に使用）
+      updateStatus(`一時停止中: #${idx + 1}`);
+      
+      // cancelフラグを少し後にリセット
+      setTimeout(() => {
+        canceling = false;
+      }, 100);
     }
   };
 
@@ -1052,7 +1097,7 @@
     speechSynthesis.cancel();
     playing = false;
     paused = false;
-    idx = -1;
+    idx = -1;  // 停止時はインデックスをリセット
     
     // タイマーをクリア
     if (window.currentSpeakTimeout) {
