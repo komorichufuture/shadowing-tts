@@ -304,7 +304,7 @@
       <div class="row">
         <button id="splitBtn" class="primary">文に分割</button>
         <button id="clearBtn">全クリア</button>
-        <button id="loadDefaultBtn" class="success">早口言葉を読込</button>
+        <button id="loadDefaultBtn" class="success">例文セットを読込</button>
       </div>
     </div>
     <!-- セキュリティ強化: 最大文字数制限 -->
@@ -452,118 +452,823 @@
   // メインアプリケーション(Shadowing TTS)
   // ==========================================
   
-  // デフォルトの早口言葉データ(100個完全版)
+  // デフォルトの例文データ
   const DEFAULT_DATA = {
   "version": 2,
   "sentences": [
     {
-      "id": "bb457a9d-a119-448c-860e-34fcf1b6f494",
-      "text": "Right or left, red or led?",
-      "jp": "右か左か、赤か鉛か?"
+      "id": "45a398cf-3b21-4ea4-9fcf-001c51829e90",
+      "text": "These are my favorite animals: bears, for their strength; lions, for their courage; and monkeys, for their cuteness.",
+      "jp": "私の好きな動物は次の３つだ。熊はその強さゆえに、ライオンはその勇敢さゆえに、猿は愛らしさゆえに、それぞれに好きだ。"
     },
     {
-      "id": "b0b10b5f-44e7-4a2e-85e2-a8f262e3533c",
-      "text": "A rolling stone gathers no moss.",
-      "jp": "転がる石には苔が生えぬ"
+      "id": "f796a69b-767b-4ffe-9866-53a9db0fa344",
+      "text": "Return to your work, and that immediately.",
+      "jp": "仕事に戻りなさい、しかも今すぐに。"
     },
     {
-      "id": "596cc58d-dcbd-4e73-9e00-7afa1448e818",
-      "text": "Really long roads lead to rural areas.",
-      "jp": "本当に長い道路が田舎地域へと続いている"
+      "id": "ca8977cb-19bb-4671-a659-2e822604ce1d",
+      "text": "Yesterday I met a novelist and poet.",
+      "jp": "昨日、私は小説家であり詩人でもある人物に会った。"
     },
     {
-      "id": "89701a86-7c3c-4d79-aeb8-827e33dc96df",
-      "text": "Larry collects colorful berries every fall.",
-      "jp": "ラリーは毎年秋にカラフルなベリーを集める"
+      "id": "8ad7dabf-dd0f-4ad6-8a2a-056f097fd11c",
+      "text": "She ate the biscuits and orange-marmalade sandwich cake.",
+      "jp": "彼女はビスケットと、オレンジマーマレードを挟んだサンドイッチケーキを食べた。"
     },
     {
-      "id": "4126d76d-78b4-45d4-8125-1e4e3be85c7d",
-      "text": "The library requires proper registration.",
-      "jp": "図書館は適切な登録を必要とする"
+      "id": "3a09483c-e1e0-4e91-826b-3d158287a49e",
+      "text": "The coming of clocks caused a grave if gradual change in our social life.",
+      "jp": "時計の登場は、緩やかではあるが重大な変化を私たちの社会生活にもたらした。"
     },
     {
-      "id": "ea30bca6-bd2d-4339-af6d-efb48b072f2b",
-      "text": "Brilliant children learn rapidly.",
-      "jp": "優秀な子どもたちは素早く学ぶ"
+      "id": "4c5e0be6-ba7f-43c1-a8e9-5166b87f5b97",
+      "text": "You mustn't worry about your son. You shouldn't blame him either, or yourself.",
+      "jp": "息子さんのことを心配してはいけません。彼を責めるべきでも、あなた自身を責めるべきでもありません。"
     },
     {
-      "id": "40578901-4dc6-44f0-8038-16f685f91ea5",
-      "text": "Lock the clock, rock the lock.",
-      "jp": "時計に鍵をかけ、鍵を揺らせ"
+      "id": "3cba3792-0004-4dcf-a34c-b94ec39b2b4d",
+      "text": "She said she had been sick for three days, but that she was getting better.",
+      "jp": "彼女は、3日間病気だったが良くなってきていると言った。（時制の一致あり）"
     },
     {
-      "id": "df02f024-949e-48cc-b074-be5c98b91868",
-      "text": "Royal jelly relates to longevity.",
-      "jp": "ローヤルゼリーは長寿に関係する"
+      "id": "cfd50926-df7a-413c-b07c-23b5e2c5f3de",
+      "text": "She said she had been sick for three days, but she was getting better.",
+      "jp": "彼女は3日間病気だったと言ったが、良くなってきている。（時制の一致なし＝発言時点の状態）"
     },
     {
-      "id": "64dc8711-0251-4d8a-a245-acb64599cf86",
-      "text": "Little Red Riding Hood",
-      "jp": "赤ずきんちゃん"
+      "id": "9e8a6c28-7949-46ec-80b3-f7fec200dbf2",
+      "text": "Dogs can show that they want to be taken for a walk, and in that respect have a language or means of communication.",
+      "jp": "犬は散歩に連れて行ってほしいという気持ちを示すことができ、その点で言語、つまり意思伝達の手段を持っていると言える。"
     },
     {
-      "id": "ab59a6a2-75bf-474a-9c66-f3891f59046a",
-      "text": "Early to bed and early to rise makes a man healthy, wealthy, and wise.",
-      "jp": "早寝早起きは健康、富、知恵をもたらす"
+      "id": "a9234821-a053-40d7-b547-0826148caace",
+      "text": "Talking with others is a good way of analyzing our ideas and feelings by discovering how they look to others.",
+      "jp": "他人と話すことは、自分の考えや感情が他人からどう見えるかを知ることで、それらを分析する良い方法である。"
     },
     {
-      "id": "5f57810b-1233-420c-9fbb-8bb78472a2b4",
-      "text": "Correct pronunciation requires regular practice.",
-      "jp": "正しい発音は定期的な練習を必要とする"
+      "id": "230c666a-c7e9-4620-9741-0fd487b75e26",
+      "text": "Some women often complain about what they feel is unjust.",
+      "jp": "一部の女性は、自分たちが不公平だと感じることについてよく不満を言う。"
     },
     {
-      "id": "a23d1bd7-4f3b-4fe9-ade7-135dd35e783a",
-      "text": "Literally every reader loves library collections.",
-      "jp": "文字通りすべての読者が図書館のコレクションを愛する"
+      "id": "e62ca9e7-0337-4dbe-bd4a-5c2702a4fb04",
+      "text": "His father writes scientific novels.",
+      "jp": "彼の父はSF作家だ。"
     },
     {
-      "id": "fe708a9b-ecc5-4645-8f06-206dc536a19d",
-      "text": "Rare lyrics reveal real feelings.",
-      "jp": "珍しい歌詞が本当の感情を明らかにする"
+      "id": "90350335-5a9b-4019-ad2e-191fbb7621fd",
+      "text": "The author is the most often read of her contemporaries in the prewar time, but this is not surprising, for her novel was well ahead of its time.",
+      "jp": "その作家は戦前の同時代作家の中で最もよく読まれているが、それも驚くことではない。彼女の小説は時代をはるかに先取りしていたからだ。"
     },
     {
-      "id": "0d612106-51a1-4ce2-b292-7bf69e59784d",
-      "text": "Yellow lorries travel slowly around London.",
-      "jp": "黄色いトラックがロンドン周辺をゆっくり走る"
+      "id": "2eefa58c-4435-440d-9357-255cdf9c4302",
+      "text": "Eddy had been dead only a short while when I graduated from high school.",
+      "jp": "エディが死んですぐ、私は高校を卒業した。"
     },
     {
-      "id": "07b758b2-3991-414a-a24c-c09e46098733",
-      "text": "Mary, Mary, quite contrary",
-      "jp": "メアリーメアリー、とても気難しい"
+      "id": "bd7a893c-d498-4a84-af26-1854c96475da",
+      "text": "I bought a book which I had wanted to read.",
+      "jp": "私は、以前から読みたかった本を買った。（限定用法）"
     },
     {
-      "id": "e21a4447-4bfc-45c8-8758-1eab36311cd4",
-      "text": "I think three things through thoroughly.",
-      "jp": "私は3つのことを徹底的に考え抜く"
+      "id": "9df08fcd-8490-440f-a610-3eddf72a59f9",
+      "text": "I bought the book, which I have not read yet.",
+      "jp": "私はその本を買ったが、まだ読んでいない。（非限定用法）"
     },
     {
-      "id": "8d63582a-7f8b-4d80-989f-feb1a1bc1d51",
-      "text": "Thirty-three thieves thought Thursday was their birthday.",
-      "jp": "33人の泥棒が木曜日が誕生日だと思った"
+      "id": "4153009e-fb83-465b-be54-d93dea5ba1ee",
+      "text": "In five years both Jane and Liz will turn forty.",
+      "jp": "5年後には、ジェーンもリズも40歳になる。"
     },
     {
-      "id": "c54da465-5e68-4d4d-bc60-ca2f77a5213d",
-      "text": "Three free throws.",
-      "jp": "3本のフリースロー"
+      "id": "2ff50b24-06d8-4497-a33c-b12f00859767",
+      "text": "You shall have a bicycle of your own when you get older.",
+      "jp": "もっと大きくなったら、自分専用の自転車を持たせてあげよう。"
     },
     {
-      "id": "e30ebe47-6a94-4f1c-9ec4-a5c0d5e22ec7",
-      "text": "I thought a thought but the thought I thought wasn't the thought I thought I thought.",
-      "jp": "考えを思ったが、思った考えは思ったと思った考えではなかった"
+      "id": "9b947c40-7a10-48f1-aba5-7b08311dc77e",
+      "text": "My hat has been sat on.",
+      "jp": "私の帽子は（誰かに）座られてしまった。"
     },
     {
-      "id": "51f77c81-a786-4d24-9e4a-7d04c4f86e49",
-      "text": "Thirty-three thousand feathers on a thrush's throat.",
-      "jp": "ツグミの喉に3万3千枚の羽"
+      "id": "04f5ed01-af0d-4dc3-803c-57ba67b16b60",
+      "text": "A tree is known by its fruit.",
+      "jp": "木はその実によって知られる（人は行いによって判断される、ということわざ）。"
+    },
+    {
+      "id": "db2d33b6-e87c-4038-9f63-2ffb7b1a9cdd",
+      "text": "This play reads much better than acts.",
+      "jp": "この戯曲は、上演されるよりも読む方がずっと面白い。"
+    },
+    {
+      "id": "f4cbecc5-8852-4eb6-8025-ce7b50ce1f3b",
+      "text": "After all, it is the natural right of an employer to get the work done the way he wants it done.",
+      "jp": "結局のところ、雇い主が自分の望む方法で仕事をさせるのは当然の権利である。"
+    },
+    {
+      "id": "aa90600f-da38-4691-9408-39e1849b9900",
+      "text": "\"Any luck at all, we'll get promoted.\"",
+      "jp": "\"Never with our luck.\"　「少しでも運が良ければ、昇進できるんだが。」　「俺たちの運じゃ、そんなことは絶対ない。」"
+    },
+    {
+      "id": "23f6b47f-a452-4116-a5a7-52b4816556f1",
+      "text": "I am willing to sing the song, but not now.",
+      "jp": "その歌を歌うのはやぶさかではないが、今は歌わない。"
+    },
+    {
+      "id": "a526704d-3bbd-4c8e-ada8-0be288f939db",
+      "text": "Laura avoided Carol's eager questions, and yet not her hug.",
+      "jp": "ローラはキャロルの熱心な質問はかわしたが、抱擁までは拒まなかった。"
+    },
+    {
+      "id": "4315143e-3543-49bd-a782-7b4b1b814ae1",
+      "text": "You can never thank him enough for this matter.",
+      "jp": "この件については、彼にどれだけ感謝してもし足りない。"
+    },
+    {
+      "id": "09e094f2-9cc9-41b5-bdb2-d946c1b5164e",
+      "text": "His performance left nothing to be desired.",
+      "jp": "彼の演技（成績）は非の打ち所がなかった。"
+    },
+    {
+      "id": "59edb63f-d002-4579-ac5b-7e5302fb2fa5",
+      "text": "Not a few of the students were absent.",
+      "jp": "少なからぬ数の学生が欠席していた。"
+    },
+    {
+      "id": "38d24733-e2fe-4d3b-826a-18b73371d6ef",
+      "text": "Quite a few of the students were absent.",
+      "jp": "かなり多くの学生が欠席していた。"
+    },
+    {
+      "id": "36508243-aa65-4a71-a563-dab7c6ee3afe",
+      "text": "I am not in the least afraid of it.",
+      "jp": "私はそれを少しも恐れていない。"
+    },
+    {
+      "id": "8b60c3d3-29c6-4d4b-a2c2-2f74d866d8f3",
+      "text": "He was admired among his colleagues, not least by the women among them.",
+      "jp": "彼は同僚たちの間で尊敬されていたが、とりわけ女性たちからそうだった。"
+    },
+    {
+      "id": "d524d2cf-9e72-41ed-a498-42c7cb1076a0",
+      "text": "She did not wish to see him; she strongly wished not to see him.",
+      "jp": "彼女は彼に会いたくなかった。だから会わないことを強く望んでいたのだ。"
+    },
+    {
+      "id": "339fbd5c-cf50-40a7-8c34-330b577baab9",
+      "text": "I couldn't possibly persuade Fred.",
+      "jp": "私にはどうやってもフレッドを説得できなかった。"
+    },
+    {
+      "id": "e8f4f33a-1b30-41a6-ab37-323b9352078b",
+      "text": "You should not buy new clothes because they are cheap.",
+      "jp": "安いからという理由だけで新しい服を買うべきではない。"
+    },
+    {
+      "id": "90a7e15a-60f3-4a3d-af42-902b76d5f5ca",
+      "text": "He could solve the problem in ten minutes.",
+      "jp": "彼はその問題を10分で解くことができた（能力があった、実際に解いたかは不明瞭）。"
+    },
+    {
+      "id": "fbc5cfdc-e5e1-44c3-b1ac-65b0ed885184",
+      "text": "He was able to solve the problem in ten minutes.",
+      "jp": "彼はその問題を10分で（実際に）解くことができた。"
+    },
+    {
+      "id": "291afbaa-7cc8-4418-b320-28cbea863a71",
+      "text": "I must read the book three times.",
+      "jp": "私はその本を3回読まねばならない（主観的な必要性）。"
+    },
+    {
+      "id": "86b14fdb-9f8a-422c-841c-41c27b177575",
+      "text": "I have to read the book three times.",
+      "jp": "私はその本を3回読まなければならない（客観的な必要性）。"
+    },
+    {
+      "id": "d39e604b-80e6-42fe-89b4-bacb1684137d",
+      "text": "He said he would come and he did come.",
+      "jp": "彼は来ると言い、実際に来た。"
+    },
+    {
+      "id": "c57e18c7-19f9-4384-acdd-7114f9220b0f",
+      "text": "Those shitty jokes of yours gotta go!",
+      "jp": "お前のくだらない（下品な）冗談はもうやめろ！"
+    },
+    {
+      "id": "4dca0f4a-1762-48d9-a477-e6c30b66a6b2",
+      "text": "Her eccentric conduct has yet to be explained.",
+      "jp": "彼女の奇妙な行動は、まだ説明がついていない。（これから説明されるべきだ）"
+    },
+    {
+      "id": "152d5e90-e369-4dcb-b471-7e5f72dd49fa",
+      "text": "The road was wet, so the car must have slipped there.",
+      "jp": "道が濡れていたので、車はそこで滑ったに違いない。"
+    },
+    {
+      "id": "1e753f26-e901-4cbf-82fb-3ff8e4ecd53a",
+      "text": "That something could keep him up at times when he should have felt terrible was amazing to him.",
+      "jp": "本来なら気分が悪くなるはずの時に、何かが彼を元気づけていられるということが、彼には驚きだった。"
+    },
+    {
+      "id": "afac3e8a-91cf-4ff8-b81f-847ade7b562c",
+      "text": "Phil has a lot of friends to support him.",
+      "jp": "フィルには彼を支えてくれる友人がたくさんいる。"
+    },
+    {
+      "id": "b2d5bda2-7f0e-41af-96f1-5526e6a9ac6b",
+      "text": "Phil has a large family to support.",
+      "jp": "フィルには養うべき大家族がいる。"
+    },
+    {
+      "id": "b9d7f899-a7d1-42dd-9614-3c454f1fdfba",
+      "text": "Phil has a good income to support his family on.",
+      "jp": "フィルには家族を養うのに十分な収入がある。"
+    },
+    {
+      "id": "1684ec76-ded2-4f23-8972-8c75818e5587",
+      "text": "Phil has no intention to support his family.",
+      "jp": "フィルには家族を養う気がない。"
+    },
+    {
+      "id": "2f45b755-6262-4ff2-b143-bf625a005d12",
+      "text": "Bob appeared to have been sick in bed since he had grown into his teens.",
+      "jp": "ボブは10代（13～19歳）になって以来、ずっと病気で寝込んでいたようだった。"
+    },
+    {
+      "id": "1a4e3be0-91fb-4ed6-b670-b78773a7b2e3",
+      "text": "I listened to everything he told me to.",
+      "jp": "私は彼が聞けと命じたことすべてに耳を傾けた。"
+    },
+    {
+      "id": "c1dbea3b-5410-4fd0-8b07-83f856db0d76",
+      "text": "I'll send you nine tenths of the money I promised you to pay.",
+      "jp": "あなたに支払うと約束したお金の10分の9を送ります。"
+    },
+    {
+      "id": "f8658f15-9f7d-49c0-a3df-e63bacf070c6",
+      "text": "I forgot to lend him the money.",
+      "jp": "私は彼にお金を貸すのを忘れた（貸し忘れた）。"
+    },
+    {
+      "id": "255052d2-2984-4dd8-b087-e1dbb06fa080",
+      "text": "I forgot lending him the money.",
+      "jp": "私は彼にお金を貸したことを忘れた。"
+    },
+    {
+      "id": "91ace8a8-0ca6-4e1b-b88d-0d58c48966e6",
+      "text": "While young, I liked neither reading aloud nor being read aloud to.",
+      "jp": "幼い頃、私は音読するのも、人に読み聞かせてもらうのも好きではなかった。"
+    },
+    {
+      "id": "859a613f-3d6c-4db6-885a-73dddb76c5e2",
+      "text": "The thought of him never being able to return home was a shock to me.",
+      "jp": "彼が二度と家に帰れないと思うと、ショックだった。"
+    },
+    {
+      "id": "ebd68138-b0c1-4a13-8959-867518e2d5f1",
+      "text": "She used to say she wasn't used to speaking in public.",
+      "jp": "彼女は、人前で話すのに慣れていないとよく言っていたものだ。"
+    },
+    {
+      "id": "d7c10dd2-da11-42a0-8892-f8ae1d2d9957",
+      "text": "The spectators excited at the game shouted loudly.",
+      "jp": "試合に興奮した観客たちは大声で叫んだ。"
+    },
+    {
+      "id": "fbe297cf-cbe1-4038-917f-89525c2ad046",
+      "text": "The man lived next to a cottage named Graham.",
+      "jp": "その男は、グラハムという名の別荘の隣に住んでいた。"
+    },
+    {
+      "id": "b0eecc85-1336-48d6-830f-b0026945f586",
+      "text": "I found a sleeping cat in the sleeping car.",
+      "jp": "私は寝台車の中で眠っている猫を見つけた。"
+    },
+    {
+      "id": "628b63c8-4cfd-4ff1-b257-06bd4ca6eacc",
+      "text": "If we could straighten the coastline of these countries out, it would be long enough to reach the moon and back, with enough left over to go around the earth at the equator.",
+      "jp": "もしこれらの国々の海岸線をまっすぐに伸ばすことができたら、月まで往復し、さらに赤道沿いに地球を一周できるほどの長さになるだろう。"
+    },
+    {
+      "id": "5e1cda2c-9936-4a6d-a428-8d27f29adc53",
+      "text": "A prey to fear, she has been sick in bed for three days since last Monday.",
+      "jp": "恐怖にとらわれて、彼女は今週の月曜日から3日間病気で寝込んでいる。"
+    },
+    {
+      "id": "97b9cb37-ba6d-4b9e-84ac-7561349acafa",
+      "text": "Put simply, money is, unless well used, the root of all evil.",
+      "jp": "簡単に言えば、お金はうまく使わなければ、あらゆる悪の根源となる。"
+    },
+    {
+      "id": "cee079bf-41e2-4a58-94af-ec3cb78d35d8",
+      "text": "Pamela was scared out, fear of the tests having a heavier gravity than anything.",
+      "jp": "パメラは怯えきっていた。試験への恐怖が何よりも重くのしかかっていた。"
+    },
+    {
+      "id": "ee6639cb-f9cd-48b5-9cf0-e69840d39994",
+      "text": "Her head leapt from the pillow, staring wildly into the darkness.",
+      "jp": "枕が頭からはずれ、彼女は暗闇を見つめて目を見開いた。"
+    },
+    {
+      "id": "ba20fe9e-5873-4455-8629-8cb790f97fde",
+      "text": "He is as wise as his younger brother.",
+      "jp": "彼は弟と同じくらいの知能だ。"
+    },
+    {
+      "id": "733b9833-5500-4657-bae1-7e9f0cdd8b41",
+      "text": "This is as good a place as any.",
+      "jp": "ここはどこにも劣らない良い場所だ（ここで十分だ）。"
+    },
+    {
+      "id": "e15d56ce-2388-4fd0-908f-d98d0a0f4e9f",
+      "text": "I waited for fifteen minutes — they seemed as many hours to me.",
+      "jp": "私は15分間待ったが、それが私には15時間にも感じられた。"
+    },
+    {
+      "id": "693e365b-7143-4319-bd26-896f2cdfc16a",
+      "text": "It's been five years since I met her. It feels more like ten.",
+      "jp": "彼女に会ってから5年になる。でも、まるで10年のように感じられる。"
+    },
+    {
+      "id": "8c5b64e3-c6ec-4d66-8f52-50cb0535fbbf",
+      "text": "She doesn't look much more than fifty.",
+      "jp": "彼女は50歳を大幅に過ぎているようには見えない。"
+    },
+    {
+      "id": "2812c8b1-8412-440e-a038-6504a24a04ad",
+      "text": "The differences between the two nations were more apparent than real.",
+      "jp": "両国間の違いは、実際のものというより見かけ上のものだった。"
+    },
+    {
+      "id": "0473bcac-eae2-4e26-8f01-9d7c05cd2b5e",
+      "text": "\"Hey, don't you look sick?\"",
+      "jp": "\"I've never been better.\"　「おい、具合悪そうじゃないか?」　「いや、今までで一番調子がいいくらいだ。」"
+    },
+    {
+      "id": "003428aa-b6a7-455a-a2e6-0734c98c98d3",
+      "text": "Bob felt in the more difficult to under stand the Japanese the longer he stayed in Japan,",
+      "jp": "日本に長くいればいるほど、ボブは日本人を理解しがたいと感じた。"
+    },
+    {
+      "id": "dcf8465b-02f0-4596-9a4e-5a3af7c32b8e",
+      "text": "This lake is the deepest around here,",
+      "jp": "この湖は、このあたりで一番深い。　This lake is deepest around here,　この湖は、このあたりが一番深い。"
+    },
+    {
+      "id": "aa3efab5-db28-41f5-9bd0-910f4cd1cbfe",
+      "text": "Problems of pollution are affecting Tokyo as much as any other city and probably more then most.",
+      "jp": "東京が汚染の問題から受けている影響は他のどの都市にも劣らず、おそらくほとんどの都市よりもまさる。"
+    },
+    {
+      "id": "8aa009a7-1d30-419e-adf8-93ed8d203043",
+      "text": "The most careful man makes some mistakes.",
+      "jp": "どんなに注意深い人もまちがいを犯すものだ。"
+    },
+    {
+      "id": "ec4290d0-b0da-4b40-b65c-a1a5124683cf",
+      "text": "She denied the fact that it was known to everyone.",
+      "jp": "彼女は、それがみんなに知られているという事実を否定した。（fact＝知られていること、that＝同格）"
+    },
+    {
+      "id": "24267cf3-3ae0-40e8-b5d7-84775af52110",
+      "text": "She denied the fact that was known to everyone.",
+      "jp": "彼女は、みんなに知られていたその事実を否定した。（fact＝別の事実、that＝関係代名詞）"
+    },
+    {
+      "id": "2b03a392-1dd7-4df0-914d-4790d6932e82",
+      "text": "He seemed to know nothing about the news, which had surprised me indeed.",
+      "jp": "私はその知らせにひどく驚いたものだが、彼は何もしらないようだった。"
+    },
+    {
+      "id": "8685ed5e-ad41-4f6b-b759-b1f5f5c77b9b",
+      "text": "He seemed to know nothing about the news, which surprises me indeed.",
+      "jp": "彼はその知らせについて何も知らないようだったので、私は本当に驚いている（今）。"
+    },
+    {
+      "id": "e15f9897-a152-4067-acf8-c87abb973916",
+      "text": "She said that that that that that boy used was wrong.",
+      "jp": "彼女は、その男の子が使ったあの「that」という語は間違っていると言った。（有名な引っ掛け構文：that(接続詞)＋that(あの)＋that(その)＋that(関係代名詞)＋that(あの)）"
+    },
+    {
+      "id": "816b3b1f-c54f-4165-a75d-23032072108f",
+      "text": "The alarm clock beside his bed (which is hardly made) was broken when he knocked it roughly one morning.",
+      "jp": "彼のベッドの脇にあった目覚まし時計（めったに整えられることのないベッドの）は、ある朝彼が乱暴にぶつけたときに壊れてしまった。"
+    },
+    {
+      "id": "dbd288b1-5894-4522-a30e-c72190ff5ab1",
+      "text": "These are the trees on the leaves of which silkworms feed.",
+      "jp": "これらは、カイコが常食としている木々である。"
+    },
+    {
+      "id": "17e07dee-5845-4d37-80a0-75d8603e5415",
+      "text": "There was something about these that I knew was right.",
+      "jp": "これらについては、正しいと私にはわかることがあった。"
+    },
+    {
+      "id": "bbad6b6b-3f7c-4995-b0ea-cf0f85d02678",
+      "text": "If you want to know what they are, you should also know what goes into what they do.",
+      "jp": "彼らが何者であるかを知りたいなら、彼ら行動の原点にあるものも知るべきだ。"
+    },
+    {
+      "id": "53e14b27-1009-458f-9976-6eaa3b488962",
+      "text": "Eric spent what money he had on food and clothes.",
+      "jp": "エリックは持っているだけのお金を食べ物と衣服に使った。"
+    },
+    {
+      "id": "caf4441a-39fb-4748-b19a-b425abb731d5",
+      "text": "No living thing can exist alone: it is part of a system where all forms of life are joined together.",
+      "jp": "生きているものは一つとして単独では存在できない。それは、あらゆる生命体が強制しているシステムの一部なのだ。"
+    },
+    {
+      "id": "12b795f4-7683-43fe-8fa6-7b64ad989e8f",
+      "text": "In a sense, sport began before humans existed for, as we all can observe, the beasts play.",
+      "jp": "ある意味で、スポーツは人類が存在する前から始まっていた。というのも、私たちが観察できる通り、動物たちも遊ぶからである。"
+    },
+    {
+      "id": "dfeafeb8-1e6e-4ab1-9ccf-4120863b47b3",
+      "text": "In investigation, I lost count of how many motels I visited. It would have been discouraging if I had stopped to think about it.",
+      "jp": "調査の過程で、私はいくつのモーテルを訪れたか数えきれなくなった。もし立ち止まってそれについて考えていたら、気が滅入っていただろう。"
+    },
+    {
+      "id": "f5bdfbfb-48c4-4c3f-ae1a-06e5012aa0a2",
+      "text": "Suppose the sun should rise in the west, I would never change my mind.",
+      "jp": "たとえ太陽が西から昇るようなことがあったとしても、私は決して考えを変えないだろう。"
+    },
+    {
+      "id": "eb98a62f-8c2b-46df-80db-59e85460e7ea",
+      "text": "I would never have said yes ten days ago.",
+      "jp": "10日前だったら、私は決してイエスとは言わなかっただろう。"
+    },
+    {
+      "id": "5a3e8c6f-0ea6-406d-b6d3-2c45ea687aeb",
+      "text": "Her attendance at the party might have encouraged them.",
+      "jp": "彼女がパーティーに出席していたら、彼らを勇気づけていたかもしれない。"
+    },
+    {
+      "id": "ef15713e-f855-4566-9e1f-54d5de4515a7",
+      "text": "The heartsick cry, the alto moan of Jane's voice was pitiful. A scream would have been less harrowing.",
+      "jp": "ジェーンの、胸を痛めるような叫び、低くうめくような声は痛ましかった。絶叫の方がまだ辛くなかっただろう。"
+    },
+    {
+      "id": "f5e067c9-2fb9-44f8-9fe1-f73d76d12ff6",
+      "text": "You could have heard a pin drop in that room.",
+      "jp": "あの部屋では、針が落ちる音さえ聞こえたことだろう（それほど静かだった）。"
+    },
+    {
+      "id": "bb790bb2-3057-4941-bfa7-ba7a867f9e26",
+      "text": "More than a thousand customers of the telephone company could go out of service were heavy rain to fill this manhole and water to get into the wires.",
+      "jp": "もし大雨がこのマンホールを満たし、回線が水浸しになったなら、電話会社の1000人を超える利用者が通信不能になりかねない。"
+    },
+    {
+      "id": "cce4e5ed-39b2-4f58-bc2c-6c44ca0c2fec",
+      "text": "If only I had appreciated her patience as much as I should have.",
+      "jp": "彼女の忍耐強さをしっかり正当に評価してやったらよかったのに。"
+    },
+    {
+      "id": "2f26f898-bc7c-4b21-9a7a-753ce3adb196",
+      "text": "It's time for you to send the children to bed.",
+      "jp": "子供たちを寝かせる時間です。"
+    },
+    {
+      "id": "13129f91-28a4-4682-8238-2426531939da",
+      "text": "It's time you sent the children to bed.",
+      "jp": "そろそろ子供たちを寝かせてもいい頃だ（本来そうすべきなのにまだ寝かせていない、というニュアンス）。"
+    },
+    {
+      "id": "2c61bbf0-3f56-4833-b78c-739d1ac1907d",
+      "text": "It was imperative that everything in the classroom be put in order.",
+      "jp": "教室の中のすべてが整理整頓されていることが不可欠だった。"
+    },
+    {
+      "id": "150bc6d7-c10e-4f22-98b7-b53646963411",
+      "text": "Barely had I checked in at the hotel when he telephoned me.",
+      "jp": "私がホテルにチェックインするやいなや、彼から電話がかかってきた。"
+    },
+    {
+      "id": "09f4e0ea-c593-4622-80d7-d29dea8489ec",
+      "text": "You may have the loan now you have offered good security.",
+      "jp": "あなたはしっかりした担保を提供したのだから、融資を受けられるだろう。"
+    },
+    {
+      "id": "054fcbc1-8087-4276-beae-d10762d054ae",
+      "text": "What would happen if all the children over the world mastered another language along with their own? Not just another language, but the same?",
+      "jp": "もし世界中の子供たちが、自国語に加えてもう一つの言語を習得したらどうなるだろうか。しかも、単にもうひとつではなく、共通の言語を。"
+    },
+    {
+      "id": "f115dba6-4083-46dd-b98b-27b368f0efcc",
+      "text": "When Brian went out to the street, there was a road crew at the opposite side. He noticed that one of them rode a rock drill steadily. It wasn't so much that the man worked harder or faster than the rest, it was that he didn't stop.",
+      "jp": "ブライアンが通りに出ると、向かい側に道路工事の作業員たちがいた。彼は、その中の一人が黙々と削岩機を操作していることに気づいた。注目したのはその男が他の者より熱心に、あるいは速く働いていたというよりも、休まず働き続けていたということだった。"
+    },
+    {
+      "id": "b1bb8132-8c5e-4b94-8ec6-f0eeae88a0ea",
+      "text": "You can't be too careful about that. Not these days.",
+      "jp": "それについてはいくら注意してもし過ぎることはない。特に近頃は。"
+    },
+    {
+      "id": "3847fdb8-0f7b-4b36-afe4-42690ba85f53",
+      "text": "Tom must be looking forward as much to Mary's return as she is herself to his.",
+      "jp": "トムが、メアリーの帰りを楽しみにしている気持ちと同じくらい、メアリーがトムの帰りを楽しみにしている気持ちは強いに違いない。"
+    },
+    {
+      "id": "9719aa41-947d-4ab1-8d8b-23b1eeeff131",
+      "text": "It is not our teacher but you who are to blame.",
+      "jp": "責められるべきなのは私たちの先生ではなく、あなたなのだ。"
+    },
+    {
+      "id": "ffc0db58-8e4f-4c86-90fc-af8dffef00ac",
+      "text": "Computed tomography is a medical method which uses an electromagnetic spectrum to form an image, or tomogram, of a cross-section of the patients' head or torso.",
+      "jp": "コンピュータ断層撮影（CT）とは、電磁スペクトルを利用して、患者の頭部や胴体の断面の画像、すなわち断層画像を作成する医療技術である。"
+    },
+    {
+      "id": "e3068b7d-16e8-4daa-8254-bb56b45f6254",
+      "text": "She is quite unapproachable, but it is equally, if not more, difficult to strike up a conversation with her sister.",
+      "jp": "彼女はかなり近寄りがたいが、彼女の妹（姉）と会話を始めるのも同じくらい、あるいはそれ以上に難しい。"
+    },
+    {
+      "id": "14183b9f-7a17-4247-86eb-42a365c555dd",
+      "text": "Not since the sixteenth century have extensive fires attacked the mountain over there.",
+      "jp": "16世紀以来、あそこの山を大規模な火災が襲ったことはない。"
+    },
+    {
+      "id": "cd14c660-527b-418b-a2db-2f7221318648",
+      "text": "Upon hearing of the new idea, Fred challenged it.",
+      "jp": "その新しい考えを聞くとすぐに、フレッドはそれに異議を唱えた。"
+    },
+    {
+      "id": "cdea5bb7-7764-4b4d-9107-b0cb3ff71fac",
+      "text": "Small wonder a man of his ability is so successful.",
+      "jp": "あれほどの能力を持つ人物がこれほど成功しているのも不思議はない。"
+    },
+    {
+      "id": "7f7e3f33-c9ff-4932-b783-d8dfd0dd6d1a",
+      "text": "He was sleepy at that time. She was also sleepy.",
+      "jp": "彼はその時眠かった。彼女も眠かった。"
+    },
+    {
+      "id": "7cf8ca19-b4ec-4166-b848-8e978b0a11a7",
+      "text": "She was tired at that time. She was also sleepy.",
+      "jp": "彼女はその時疲れていた。そして眠くもあった。"
+    },
+    {
+      "id": "4c42eb21-7ea3-421e-a1b8-579b22dc4699",
+      "text": "A man will be most dangerous if he feels too sad.",
+      "jp": "あまりにみじめに感じすぎているとき、人は最も危険になるものだ。"
+    },
+    {
+      "id": "aca5b237-fea7-4acb-bd37-35aaba607484",
+      "text": "I know Mr. Lee.",
+      "jp": "私はリー氏と知り合いだ。"
+    },
+    {
+      "id": "ec1c8a54-34f8-444d-be94-7316aac1e6e4",
+      "text": "I know of Mr. Lee.",
+      "jp": "私はリー氏のことを（噂などで）知っている。"
+    },
+    {
+      "id": "86777d6d-9b40-4f61-896c-7b62d4885f5e",
+      "text": "They found the oyster bed, cleared the bottom of old shells, and then spread it with clean ones.",
+      "jp": "彼らは牡蠣の養殖場を選び、底にある古い貝殻を取り除いて、新しい貝殻を敷き詰めた。"
+    },
+    {
+      "id": "2f14806f-1d7f-4124-a0d3-595a322e2f62",
+      "text": "Each individual is different from every other individual.",
+      "jp": "それぞれの個人は、他のあらゆる個人と異なっている。"
+    },
+    {
+      "id": "6ddd053b-7791-41a2-b56f-4aa2f6673006",
+      "text": "The garbage is collected every other Wednesday.",
+      "jp": "ゴミは1週おきの水曜日に収集される。"
+    },
+    {
+      "id": "8d7f885b-b5d1-4fc8-b2f4-00e42f173660",
+      "text": "For every millionaire, there are scores of poor people living on a pittance.",
+      "jp": "一人の富豪に対して、わずかな収入で暮らす貧しい人々が何十人もいる。"
+    },
+    {
+      "id": "7723d332-d106-4535-be44-a4a5a18eb5dc",
+      "text": "Ten to one Robert will win.",
+      "jp": "十中八九、ロバートが勝つだろう。　A-100　He is one-half as old as his sister.　彼は姉（妹）の半分の年齢である。"
+    },
+    {
+      "id": "e426f7a1-f125-457e-9cdc-120c26edcac9",
+      "text": "The best-known cricket players in that country from the early 1900's were Johnston, who had been often called successor to Thomas, and Farrell.",
+      "jp": "1900年代初頭のその国で最もよく知られたクリケット選手は、しばしばトーマスの後継者と呼ばれていたジョンストンと、ファレルだった。"
+    },
+    {
+      "id": "f58b0745-8efc-417f-b37b-1a9f35d620b2",
+      "text": "Hippocrates separated religion from healing, and recognized the role of diet, living conditions, and climate in illness.",
+      "jp": "ヒポクラテスは宗教と治療を切り離し、病気における食事、生活環境、気候の役割を認識していた。"
+    },
+    {
+      "id": "a141beca-23b4-4bfa-ad85-d3317e1071f7",
+      "text": "Bobby was so absent-minded he didn't remember buying a birthday present for Linda.",
+      "jp": "ボビーはあまりにもうっかり者だったので、リンダの誕生日プレゼントを買ったことすら覚えていなかった。"
+    },
+    {
+      "id": "712d5eee-6b64-4edc-9c82-cbdeb1263e37",
+      "text": "I'll employ her, because she has a lot of knowledge and willingness to work.",
+      "jp": "私は彼女を雇うつもりだ。なぜなら彼女は豊富な知識と、働く意欲を持っているからだ。"
+    },
+    {
+      "id": "cc76db36-c2be-4c8c-b1ff-548bfbe65b0a",
+      "text": "Mrs. Jones couldn't risk opening that parcel, not with the children about, and so put it into a drawer.",
+      "jp": "子供たちがそばにいるのでジョーンズ夫人は、その小包を開ける危険を冒すことができず、それを引き出しにしまった。"
+    },
+    {
+      "id": "d5444623-2129-4613-8edd-b2cb85fd3ac0",
+      "text": "\"There's no need to thank me. I've not been that good a friend to you.\"",
+      "jp": "\"I've none better.\"　「私に礼を言う必要はないよ。君にとってそれほど良い友人だったわけじゃない。」　「これ以上の友人はいないよ。」"
+    },
+    {
+      "id": "f5ad2526-8395-45c1-8417-19a34aafd780",
+      "text": "The original settlers made medicines from whatever they had available: salt became a toothpaste; blackpowder was applied to warts, and pine pitch to open cuts.",
+      "jp": "初期の入植者たちは、手に入るものなら何からでも薬を作った。塩は歯磨き粉になり、黒色火薬はいぼに、松脂は切り傷に用いられた。"
+    },
+    {
+      "id": "dc8c12e7-52f9-49c3-b728-0140d9284921",
+      "text": "In an overcrowded place such as the London Underground, people are always bumping up against one another. The bumping appears bothersome, and so does seeing to all the required apologies.",
+      "jp": "ロンドンの地下鉄のような混雑した場所では、人々は絶えず互いにぶつかり合っている。そのぶつかることも煩わしく思えるが、必要な謝罪を一つ一つこなすことも同様に煩わしく思える。"
+    },
+    {
+      "id": "80a7c837-ea15-479b-87df-080ca3ce4b70",
+      "text": "A knight was riding to battle on a hungry horse during a thunderstorm. He thought: my horse isn't running too fast and the weather could have been much worse.",
+      "jp": "ある騎士が、雷雨の中、腹をすかせた馬に乗って戦へ向かっていた。彼はこう考えた。馬はそれほど速く走っていない（から扱いやすい）し、天気だってもっと悪かったかもしれないのだから、と。"
+    },
+    {
+      "id": "23f930cd-f3db-4bc0-9c22-ff33b866c4cf",
+      "text": "Historians attempt to reconstruct the process that has created the world where we live, and us ourselves from the aspect that we are creatures of our time and environments.",
+      "jp": "歴史家たちは、私たちが生きるこの世界を作り上げてきた過程、そして私たち自身が時代と環境の産物であるという観点から、私たち自身が生み出された過程をも再構築しようと試みる。"
+    },
+    {
+      "id": "d6663c81-58fd-4b4f-8436-861db4435bd0",
+      "text": "She never rejected her customers because they had much money to spend.",
+      "jp": "彼女は、客が使えるお金をたくさん持っていたので断ることは決してなかった。（理由での否定ではない）"
+    },
+    {
+      "id": "efd39b27-a646-4643-ad9d-ea5ae2491fa2",
+      "text": "She never rejected her customers because they had little money to spend.",
+      "jp": "彼女は、客が使えるお金をほとんど持っていないという理由で断ることは決してなかった。"
+    },
+    {
+      "id": "4c3bb606-f177-4fb6-8ba4-63af435acdd1",
+      "text": "In general, children don't mind, if we don't do it to excess, our informing them that they were so babyish when little.",
+      "jp": "一般的に、小さいころにひどく幼稚だったと大人が言っても、それが度をわきまえた言い方であれば、子供は気にしないものだ。"
+    },
+    {
+      "id": "3ec0d54c-9b70-46cc-85fb-771d4a4545f1",
+      "text": "The tribe's buildings were actually villages in their own right, as later Spanish explorers must have realized since they called them by a name which is Spanish for town.",
+      "jp": "その部族の建物は実際には、それ自体が一つの村であった。後にスペイン人探検家たちも、それらをスペイン語で「町」を意味する名で呼んだことから、そのことに気づいていたに違いない。"
+    },
+    {
+      "id": "534f62d3-c91a-4b83-b8da-886f6ab8ca98",
+      "text": "The late artist's peculiarities inscrutable to those who knew him continue to be bewildering because of his lifestyle.",
+      "jp": "故人となったその芸術家の、彼を知る人々にも理解しがたい奇妙な性質は、その生活様式のせいで今も人々を困惑させ続けている。"
+    },
+    {
+      "id": "96874b68-a9e4-4132-bfaa-188f8efd8639",
+      "text": "It is most likely the thoroughness with which steam engines disappeared that gives them a prominence among all those nostalgic objects.",
+      "jp": "あらゆる懐かしい品々の中でも際立って蒸気機関が目立つのは、すっかり消えてしまったからに違いない。"
+    },
+    {
+      "id": "863f9cc4-69f2-479e-803c-fec3dc388fb6",
+      "text": "There didn't seem to be any urgency about calling at their new house. Not when there was so much to be enjoyed in our own home.",
+      "jp": "彼らの新居を訪ねることに、それほど急を要する様子はなかった。自分たちの家で楽しめることがこれほどたくさんあるのだから、なおさらだ。"
+    },
+    {
+      "id": "1438e2c5-d076-413c-a825-63305a01bfcc",
+      "text": "In the nineteenth century there was an idea that novels written by women should show purity and humility, thus disclosing the characters of their writers. The gentlest and most feminine writers hated this belief, reacting against any attempts to force conventions unrelated to literature upon their writing.",
+      "jp": "19世紀には、女性によって書かれた小説は純潔さと謙虚さを示すべきであり、それによって書き手の人柄を表すべきだという考え方があった。最も穏やかで女性らしいとされた作家たちさえこの考えを嫌い、文学とは無関係な慣習を自分たちの作品に押し付けようとするあらゆる試みに反発した。"
+    },
+    {
+      "id": "756e1afe-864f-42bf-a2f1-cae6cc968e23",
+      "text": "The writer is known primarily for his patronage of other artists. But he was also skilled as a writer himself, and it is time that he received more recognition and the measure of his revolutionary work was made known.",
+      "jp": "その作家は、主に他の芸術家たちのパトロンとして知られている。しかし彼自身も優れた書き手であり、そろそろもっと評価を受け、その革新的な仕事の真価が世に知られてもよい頃である。"
+    },
+    {
+      "id": "523e29a5-fc75-4fe0-94cd-61770463ff56",
+      "text": "I tried various techniques of provocation to make my father go to hospital. My sisters treated him respectfully, though, trying to get the point across. In fact, they used to employ a strategy of keeping quiet.",
+      "jp": "私は父を病院に行かせようと、様々な挑発の手を試みた。だが姉（妹）たちは、父を丁重に扱いながらも思いを伝えようとした。。それどころか、彼女たちは黙っているという戦略を用いることもよくあった。"
+    },
+    {
+      "id": "755749c4-bb39-445a-917a-88674b93c157",
+      "text": "Teaching is not just giving information, but requires a conversion, a change in the learner's way of thinking, and this can take some time.",
+      "jp": "教えるということは単に情報を与えることではなく、学習者の考え方における転換、すなわち実際に変化を生じさせることが必要とするものであり、それには時間がかかることがある。"
+    },
+    {
+      "id": "3ba4f525-3475-458b-a497-45da11d9a35e",
+      "text": "They had to turn down the offer, for their club had strict rules. It should be improved, but as a matter of fact it was not.",
+      "jp": "彼らはその申し出を断らざるを得なかった。彼らのクラブには厳しい規則があったからだ。それは改善されるべきだったが、実際には改善されなかった。"
+    },
+    {
+      "id": "baf830e0-c464-4a76-af1d-e68fd3f33408",
+      "text": "Pollution not only alters the makeup of the air we breathe, but shuts out some of the sun's important life-giving rays.",
+      "jp": "汚染は私たちが呼吸する空気の組成を変えるだけでなく、太陽が放つ生命に不可欠な光線の一部を遮断してしまう。"
+    },
+    {
+      "id": "fb71c8ce-522f-4b8e-9f23-5afd81f5c32d",
+      "text": "What the play acted in the neighbor town lacks in sentiment, it more than makes up for otherwise.",
+      "jp": "隣町で上演されたその芝居は、情緒の面で欠けているものを、他の面で十分に補って余りある。"
+    },
+    {
+      "id": "810fe36e-a8db-4eda-ad0a-80c584d99945",
+      "text": "High winds furrowed the sea, flinging curling, spraying waves against the ferry's diving, rising prow.",
+      "jp": "強風が海面をかき乱し、渦巻きとしぶきが満ちた波を、上下に揺れ動くフェリーの船首に叩きつけた。"
+    },
+    {
+      "id": "cd66513a-2322-443a-a47f-45e6561e53bc",
+      "text": "Students who start their research projects, when confronted with the problem of proof, discover that the majority of the proofs that they may have criticized other researchers for failing to demonstrate are, in actual fact, extremely difficult to prove.",
+      "jp": "研究計画に着手した学生たちは、証明の問題に直面したとき、かつてのほかの研究員たちの調査に欠如していると批判できたであろう大半の「証明が、実際には極めて証明困難であることに気づく。"
+    },
+    {
+      "id": "193d06e3-8bed-489c-9eb5-b015f26ff1de",
+      "text": "In the prehistoric age, the comparative lack of ability to use the metal tools lowered women's status. However, this cannot be the only reason women were subordinated, for the division of labor between the sexes could have meant a friendly association.",
+      "jp": "先史時代において、金属道具を使う能力が比較的乏しかったことが、女性の地位を低下させた。しかし、それだけが女性が従属的立場に置かれた理由だとは言えない。なぜなら、男女間の分業は、友好的な協力関係を意味していた可能性もあるからだ。"
+    },
+    {
+      "id": "4a664077-d50f-40e5-929b-0d2762af8232",
+      "text": "He was amazed to see his children's response, because children don't care what they eat.",
+      "jp": "彼は子供たちの反応を見て驚いた。というのも、子供というものは何を食べるかなど気にしないものだからだ。"
+    },
+    {
+      "id": "02586a80-1877-4d84-add9-e5143b7a06ea",
+      "text": "Jimmy goes to bed hungry. Not when he was young. Practically never then.",
+      "jp": "ジミーは空腹のまま寝る。だが、彼が幼かった頃はそうではなかった。当時は、ほぼ絶対にそんなことはなかった。"
+    },
+    {
+      "id": "92d1be70-3712-4539-8caf-6676f657c99b",
+      "text": "In this area, the changes brought by the coming of the reservoirs can't be overestimated, and conditions have never been better.",
+      "jp": "この地域では、貯水池ができたことによってもたらされた変化はいくら評価してもし過ぎることはなく、状況はかつてないほど良くなっている。"
+    },
+    {
+      "id": "352c4b9b-c807-406f-bbc2-5b64ea1c3181",
+      "text": "In a decimal expansion of nineteen thousandths, what digit could appear in the ten-thousandths' place?",
+      "jp": "（数学の問題です。訳したあと、できれば答を求めてください）　19/1000（＝0.019）の小数展開において、万分の位（小数第4位）にはどの数字が現れうるか。　解答：19/1000 = 0.0190000… という有限小数のため、万分の位は必ず「0」になる。"
+    },
+    {
+      "id": "5aa826c0-f051-4d8a-8a1c-9a8d6120fd19",
+      "text": "They routinely write checks of ten twenty a hundred thousand dollars.",
+      "jp": "彼らは日常的に、1万、2万、あるいは10万ドルといった額の小切手を書く。"
+    },
+    {
+      "id": "0768fd2d-06a3-4067-8ec3-f03a4efd71d9",
+      "text": "Today's household product is much better than it was. Rarely have aesthetics and functionality been so much in public demand. Shops that sell tasteful items are emerging in the most unattractive of shopping malls.",
+      "jp": "今日の家庭用品は以前よりずっと良くなっている。美しさと機能性がこれほど世間から求められたことはめったにない。センスの良い商品を扱う店が、最も地味なショッピングモールにさえ登場してきている。"
+    },
+    {
+      "id": "7798b12c-8545-4c7a-aa07-2e03fa6c6f2a",
+      "text": "A dream is, so to speak, an additional helping of experience for which, in my opinion, we are never sufficiently grateful.",
+      "jp": "夢とは、いわば経験のおかわりのようなものであり、私の考えでは、それに対してどれほど感謝しても足りない。"
+    },
+    {
+      "id": "614e7b03-cbbc-4636-a357-bc01d25ff496",
+      "text": "Experiments in language learning have demonstrated the useful influence on later memory of having the subject practice reading aloud the material to be learned.",
+      "jp": "言語学習における実験が示したところによると、被験者に学習対象の教材を音読させることが、後の記憶に有益な影響を及ぼす。"
+    },
+    {
+      "id": "4fbdfd4d-422f-4574-ae81-280093dc8607",
+      "text": "You never disclose your own character so distinctly as when you describe others'.",
+      "jp": "人の性格が最も良く分るのは、その人が他人の性格について語っている時だ。"
+    },
+    {
+      "id": "762f550d-3b74-4fd8-94c8-9ef7cd7c1c6e",
+      "text": "Linda had three times as many pens as I did.",
+      "jp": "リンダは私の3倍の数のペンを持っていた。"
+    },
+    {
+      "id": "0081012d-c2a3-4233-9ddc-49e206626bd6",
+      "text": "Linda had three times more pens than I did.",
+      "jp": "リンダは私よりペンを４倍（3倍多く＝計4倍、または3倍と同義に使われることもある）多く持っていた。"
+    },
+    {
+      "id": "a78446b0-ce96-4d9a-85ad-b60b1c066562",
+      "text": "We can hardly imagine thought without language, not thought that is precise, anyway.",
+      "jp": "私たちは言語なしに思考することをほとんど想像できない。少なくとも、精緻な思考については。"
+    },
+    {
+      "id": "4d7f5dba-08b6-48ef-987e-b8c4498c3b76",
+      "text": "George Bush's victory in the 2000 presidential election was an extremely narrow one, with a controversy over who won Florida's electoral votes among others.",
+      "jp": "2000年の大統領選挙におけるジョージ・ブッシュの勝利は他の歴代大統領たちのそれと比べて極めて僅差のものであり、しかもフロリダ州の選挙人票を誰が獲得したかをめぐって論争が生じた。"
+    },
+    {
+      "id": "33d1ffa2-157b-400a-b708-4e7ce05fc0fb",
+      "text": "Jane had lied to me once, but nothing less than the truth would be satisfactory enough for me this time. But lies, naturally, are only one way to avoid being followed. When I reached her house and observed the securely locked door, I knew she'd resorted to another. She had fled the scene.",
+      "jp": "ジェーンは以前一度、私に嘘をついたことがあった。しかし今回は、真実以外のもので納得するつもりはなかった。もっとも、嘘は当然、追跡を逃れる方法の一つに過ぎない。彼女の家に着き、しっかりと施錠されたドアを目にしたとき、私は彼女が別の手段に訴えたのだと悟った。彼女はその場から姿を消していたのだ。"
+    },
+    {
+      "id": "398f33f4-9d77-4e52-82f0-7591070367ed",
+      "text": "What is the greatest whole number such that the sum of 5 and the product of 5 and that whole number is less than 20?",
+      "jp": "（数学の問題です。訳したあと、できれば答を求めてください）　5に、5とある整数との積を加えたものがが20未満になるような、最大の整数は何か。　解答：5 + 5x < 20 → 5x < 15 → x < 3 より、条件を満たす最大の整数は「2」（確認：5+5×2=15<20、5+5×3=20は不成立）。"
     }
   ],
   "settings": {
     "repeatEach": 50,
-    "gapEach": 0.8,
+    "gapEach": 0.3,
     "vol": 1,
-    "rate": 1,
+    "rate": 1.4,
     "pitch": 1,
-    "voice": "",
+    "voice": "Microsoft Ava Multilingual Online (Natural) - English (United States)",
     "langHint": "en-US",
     "showJP": true
   }
@@ -736,7 +1441,7 @@
   loadDefaultBtn.onclick = () => {
     if (sentences.length && !confirm('現在のデータを上書きしますか?')) return;
     loadDataFromJSON(DEFAULT_DATA);
-    showSuccess('早口言葉データを読み込みました(R/L発音練習用)');
+    showSuccess('例文データを読み込みました');
   };
 
   // 和訳関連
@@ -1211,7 +1916,7 @@
   window.addEventListener('load', () => {
     setTimeout(() => {
       loadDataFromJSON(DEFAULT_DATA);
-      showSuccess('早口言葉データを自動読み込みしました(R/L発音練習用)');
+      showSuccess('例文データを自動読み込みしました');
     }, 500);
   });
 
